@@ -1,0 +1,13 @@
+# Geheimnisse
+.env
+.env.local
+
+# Abhängigkeiten
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# OS spezifisch
+.DS_Store
+dist/
+build/
