@@ -15,9 +15,22 @@ dotenv.config();
 
 const app = express();
 
-// --- CORS FIX ---
+// --- DYNAMISCHER CORS FIX ---
+const allowedOrigins = [
+  'http://localhost:5173',           // Dein lokales Frontend
+  process.env.FRONTEND_URL           // Die URL, die wir später online vergeben
+];
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Erlaubt Anfragen ohne Origin (wie Postman oder mobile Apps) 
+    // oder wenn die Origin in der Liste oben steht
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Nicht erlaubt durch CORS'));
+    }
+  },
   credentials: true
 }));
 
@@ -25,10 +38,7 @@ app.use(express.json());
 
 // --- BILDER-PFAD FIX ---
 const __dirname = path.resolve();
-// Das hier sorgt dafür, dass http://localhost:5001/uploads/bild.jpg funktioniert
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
-
-// Falls du Bilder auch direkt im /images Ordner hast:
 app.use('/images', express.static(path.join(__dirname, '/images')));
 
 // Sicherstellen, dass der Upload-Ordner existiert
@@ -43,6 +53,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 
 // --- DATENBANK ---
+// Nutzt MONGODB_URI aus der .env
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected ✅'))
   .catch(err => console.error('MongoDB Fehler:', err));
