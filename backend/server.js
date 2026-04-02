@@ -15,22 +15,25 @@ dotenv.config();
 
 const app = express();
 
-// --- BOMBENSICHERER CORS FIX ---
-// Hier stehen alle Adressen, die auf dein Backend zugreifen dürfen
+// --- DER ULTIMATIVE CORS-FIX ---
 const allowedOrigins = [
   'http://localhost:5173',
   'https://afghanshop.vercel.app',
-  'https://afghanshop.vercel.app/',
-  process.env.FRONTEND_URL // Wir lassen die Variable zur Sicherheit trotzdem drin
+  'https://afghanshop-backend.onrender.com'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Erlaubt Anfragen ohne Origin (wie Postman) oder wenn in Liste
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Erlaubt: 1. Kein Origin (Postman) 2. Deine festen Domains 3. JEDE Vercel-Subdomain (wichtig für Vorschau-Links!)
+    if (
+      !origin || 
+      allowedOrigins.includes(origin) || 
+      origin.endsWith('.vercel.app') || 
+      origin.includes('vercel.app')
+    ) {
       callback(null, true);
     } else {
-      console.log("Blockierte Origin:", origin); 
+      console.log("CORS blockiert diese URL:", origin); 
       callback(new Error('Nicht erlaubt durch CORS'));
     }
   },
@@ -41,14 +44,13 @@ app.use(cors({
 
 app.use(express.json());
 
-// --- BILDER-PFAD FIX ---
+// --- BILDER-PFAD FIX (Bleibt für lokale Tests, Cloudinary übernimmt online) ---
 const __dirname = path.resolve();
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 app.use('/images', express.static(path.join(__dirname, '/images')));
 
-// Sicherstellen, dass der Upload-Ordner existiert
 if (!fs.existsSync(path.join(__dirname, '/uploads'))) {
-  fs.mkdirSync(path.join(__dirname, '/uploads'));
+  fs.mkdirSync(path.join(__dirname, '/uploads'), { recursive: true });
 }
 
 // --- API ROUTEN ---
