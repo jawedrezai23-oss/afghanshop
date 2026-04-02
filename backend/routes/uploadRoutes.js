@@ -13,20 +13,19 @@ const router = express.Router();
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  api_secret: process.env.CLOUDINARY_API_SECRET, // WICHTIG: Das "T" am Ende muss bei Render im Dashboard stehen!
 });
 
 // --- CLOUDINARY SPEICHER-LOGIK ---
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'afghanshop_products', // Erstellt automatisch diesen Ordner in Cloudinary
+    folder: 'afghanshop_products',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    transformation: [{ width: 1000, height: 1000, crop: 'limit' }] // Optimiert die Größe automatisch
   },
 });
 
-// Filter: Nur Bilder erlauben (Zusätzliche Sicherheit)
+// Filter: Nur Bilder erlauben (behalten wir von dir bei)
 function checkFileType(file, cb) {
   const filetypes = /jpg|jpeg|png|webp/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
@@ -40,7 +39,7 @@ function checkFileType(file, cb) {
 }
 
 const upload = multer({ 
-  storage,
+  storage: storage,
   fileFilter: function (req, file, cb) {
     checkFileType(file, cb);
   }
@@ -49,11 +48,10 @@ const upload = multer({
 // --- DER POST-ENDPUNKT ---
 router.post('/', upload.single('image'), (req, res) => {
   if (!req.file || !req.file.path) {
-    return res.status(400).send({ message: 'Fehler beim Upload zu Cloudinary' });
+    return res.status(400).send({ message: 'Keine Datei von Cloudinary empfangen' });
   }
 
-  // WICHTIG: req.file.path ist jetzt der komplette HTTPS-Link von Cloudinary!
-  // Wir speichern diesen Link direkt in der MongoDB.
+  // req.file.path ist bei Cloudinary bereits der fertige HTTPS-Link!
   res.send(req.file.path);
 });
 
