@@ -1,34 +1,32 @@
 import path from 'path';
 import express from 'express';
 import multer from 'multer';
-import fs from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const router = express.Router();
 
-// Absoluter Pfad zum Upload-Ordner
-const __dirname = path.resolve();
-const uploadDir = path.join(__dirname, '/uploads');
+// --- CLOUDINARY KONFIGURATION ---
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-// Erstelle den Ordner automatisch, falls er nicht existiert (mit rekursiver Sicherheit)
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Multer Konfiguration
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, 'uploads/'); 
-  },
-  filename(req, file, cb) {
-    // Erstellt einen sauberen Dateinamen: image-zeitstempel.jpg
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
+// --- CLOUDINARY SPEICHER-LOGIK ---
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'afghanshop_products', // Erstellt automatisch diesen Ordner in Cloudinary
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 1000, height: 1000, crop: 'limit' }] // Optimiert die Größe automatisch
   },
 });
 
-// Filter: Nur Bilder erlauben (JPG, JPEG, PNG, WEBP)
+// Filter: Nur Bilder erlauben (Zusätzliche Sicherheit)
 function checkFileType(file, cb) {
   const filetypes = /jpg|jpeg|png|webp/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
@@ -48,16 +46,15 @@ const upload = multer({
   }
 });
 
-// Der POST-Endpunkt
+// --- DER POST-ENDPUNKT ---
 router.post('/', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).send({ message: 'Keine Datei empfangen' });
+  if (!req.file || !req.file.path) {
+    return res.status(400).send({ message: 'Fehler beim Upload zu Cloudinary' });
   }
 
-  // WICHTIG: Ersetzt Backslashes durch Slashes für die URL-Kompatibilität
-  const safePath = `/${req.file.path.replace(/\\/g, '/')}`;
-  
-  res.send(safePath);
+  // WICHTIG: req.file.path ist jetzt der komplette HTTPS-Link von Cloudinary!
+  // Wir speichern diesen Link direkt in der MongoDB.
+  res.send(req.file.path);
 });
 
 export default router;
