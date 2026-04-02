@@ -15,23 +15,28 @@ dotenv.config();
 
 const app = express();
 
-// --- DYNAMISCHER CORS FIX ---
+// --- BOMBENSICHERER CORS FIX ---
+// Hier stehen alle Adressen, die auf dein Backend zugreifen dürfen
 const allowedOrigins = [
-  'http://localhost:5173',           // Dein lokales Frontend
-  process.env.FRONTEND_URL           // Die URL, die wir später online vergeben
+  'http://localhost:5173',
+  'https://afghanshop.vercel.app',
+  'https://afghanshop.vercel.app/',
+  process.env.FRONTEND_URL // Wir lassen die Variable zur Sicherheit trotzdem drin
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Erlaubt Anfragen ohne Origin (wie Postman oder mobile Apps) 
-    // oder wenn die Origin in der Liste oben steht
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Erlaubt Anfragen ohne Origin (wie Postman) oder wenn in Liste
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.log("Blockierte Origin:", origin); 
       callback(new Error('Nicht erlaubt durch CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
@@ -53,7 +58,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 
 // --- DATENBANK ---
-// Nutzt MONGODB_URI aus der .env
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected ✅'))
   .catch(err => console.error('MongoDB Fehler:', err));
