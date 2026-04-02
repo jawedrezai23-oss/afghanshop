@@ -69,7 +69,7 @@ export default function ProductDetail() {
 
   const displayImage = product.image?.startsWith('http')
     ? product.image
-    : `http://localhost:5001${product.image}`;
+    : `https://afghanshop-backend.onrender.com${product.image}`;
 
   const discountPercent = product.isPromotion && product.oldPrice > 0
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)

@@ -18,7 +18,7 @@ const ProductCard = ({ product, addToCartHandler }) => {
       <div className="relative overflow-hidden aspect-square bg-gray-100">
         <Link to={`/product/${product._id}`}>
           <img 
-            src={product.image?.startsWith('http') ? product.image : `http://localhost:5001${product.image}`} 
+            src={product.image?.startsWith('http') ? product.image : `https://afghanshop-backend.onrender.com${product.image}`} 
             alt={product.name} 
             className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${product.countInStock === 0 ? 'grayscale opacity-50' : ''}`}
           />
