@@ -13,7 +13,7 @@ const router = express.Router();
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET, // WICHTIG: Das "T" am Ende muss bei Render im Dashboard stehen!
+  api_secret: process.env.CLOUDINARY_API_SECRET, 
 });
 
 // --- CLOUDINARY SPEICHER-LOGIK ---
@@ -25,7 +25,7 @@ const storage = new CloudinaryStorage({
   },
 });
 
-// Filter: Nur Bilder erlauben (behalten wir von dir bei)
+// Filter: Nur Bilder erlauben
 function checkFileType(file, cb) {
   const filetypes = /jpg|jpeg|png|webp/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
@@ -51,7 +51,7 @@ router.post('/', upload.single('image'), (req, res) => {
     return res.status(400).send({ message: 'Keine Datei von Cloudinary empfangen' });
   }
 
-  // req.file.path ist bei Cloudinary bereits der fertige HTTPS-Link!
+  // Schickt den fertigen HTTPS-Link von Cloudinary zurück
   res.send(req.file.path);
 });
 
