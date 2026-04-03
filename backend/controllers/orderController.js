@@ -26,6 +26,7 @@ const transporter = nodemailer.createTransport({
 
 // --- HILFSFUNKTION FÜR EPC-QR-CODE ---
 const generatePaymentQRCode = async (order) => {
+  // Beibehalten der neuen IBAN aus Code 2
   const iban = "IE49SUMU99036512768145";
   const bic = "SUMUIE22XXX";
   const name = "Jawed REZAI";
@@ -88,11 +89,9 @@ const drawInvoiceContent = async (doc, order) => {
     
     doc.fillColor('#444444').fontSize(10).font('Helvetica');
 
-    // --- DER ULTIMATIVE GEWICHTS-FILTER ---
     let weightLabel = "";
     let rawWeight = item.weight;
     
-    // Falls Gewicht im Item fehlt, aus der DB holen
     if (!rawWeight) {
       const dbProd = await Product.findById(item.product).lean();
       if (dbProd) rawWeight = dbProd.weight;
@@ -100,7 +99,6 @@ const drawInvoiceContent = async (doc, order) => {
 
     if (rawWeight) {
       let w = String(rawWeight).replace(/[^\d.]/g, ''); 
-      // 500500 Fix
       if (w.length >= 4 && w.length % 2 === 0) {
         const half = w.length / 2;
         if (w.substring(0, half) === w.substring(half)) w = w.substring(0, half);
@@ -192,9 +190,31 @@ const drawInvoiceContent = async (doc, order) => {
 
 export const addOrder = async (req, res) => {
   try {
+    const { orderItems, shippingAddress } = req.body;
+
+    // --- LOGIK: PRÜFUNG AUF FRISCHWARE / REIS (NUR BRAUNAU) ---
+    const isBraunau = shippingAddress.postalCode === '5280' || 
+                      shippingAddress.city.toLowerCase().includes('braunau');
+
+    for (const item of orderItems) {
+      const product = await Product.findById(item.product);
+      if (product) {
+        // Falls Produkt Frischware ist oder schwer (z.B. Reis ab 5kg) und nicht Braunau
+        const isFresh = product.category === 'Frischware' || product.isFresh;
+        const isHeavy = product.weight >= 5000 || (product.name.toLowerCase().includes('reis') && product.weight >= 4000);
+
+        if ((isFresh || isHeavy) && !isBraunau) {
+          return res.status(400).json({ 
+            message: `Das Produkt "${product.name}" kann leider nur innerhalb von Braunau am Inn geliefert werden.` 
+          });
+        }
+      }
+    }
+
     const lastOrder = await Order.findOne().sort({ invoiceNumber: -1 });
     const newInvoiceNumber = lastOrder && lastOrder.invoiceNumber ? lastOrder.invoiceNumber + 1 : 1014;
-    const itemsPrice = req.body.orderItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+    
+    const itemsPrice = orderItems.reduce((acc, item) => acc + item.price * item.qty, 0);
 
     let shippingPrice = req.body.shippingPrice;
     if (shippingPrice > 0) {
@@ -214,6 +234,7 @@ export const addOrder = async (req, res) => {
     const createdOrder = await order.save();
     const populatedOrder = await Order.findById(createdOrder._id).populate('user', 'name email');
 
+    // Lagerbestand aktualisieren
     for (const item of createdOrder.orderItems) {
       const product = await Product.findById(item.product);
       if (product) {
@@ -233,6 +254,7 @@ export const addOrder = async (req, res) => {
       }
     }
 
+    // PDF & Mail Versand
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     let buffers = [];
     doc.on('data', buffers.push.bind(buffers));
