@@ -39,7 +39,7 @@ const AdminProductEdit = () => {
   const [isPromotion, setIsPromotion] = useState(false);
   const [promotionLabel, setPromotionLabel] = useState('');
   const [oldPrice, setOldPrice] = useState(0);
-  const [deliveryType, setDeliveryType] = useState('all');
+  const [deliveryType, setDeliveryType] = useState('all'); // 'all' oder 'local'
 
   // Trust Badges
   const [warranty, setWarranty] = useState('100% Original-Ware');
@@ -52,10 +52,16 @@ const AdminProductEdit = () => {
   const categories = ["Lebensmittel", "Trockenfrüchte", "Getränke", "Süssigkeiten", "Frische Lebensmittel"];
   const units = ["g", "kg", "ml", "L", "Stk", "Packung", "Glas"];
 
+  // AUTO-LOGIK FÜR BRAUNAU & FRISCHE
   useEffect(() => {
     const currentCat = newCategory.trim() !== "" ? newCategory : category;
     const foodKeywords = ["lebensmittel", "getränk", "frucht", "süss", "frisch", "essen", "food", "drink", "trockenfrüchte"];
     const isFood = foodKeywords.some(keyword => currentCat.toLowerCase().includes(keyword));
+
+    // Wenn Frische Lebensmittel ODER schwerer als 4.99kg
+    if (currentCat === "Frische Lebensmittel" || (unit === 'kg' && Number(unitSize) >= 5)) {
+      setDeliveryType('local');
+    }
 
     if (isFood) {
       setWarranty('100% Original-Ware');
@@ -64,7 +70,7 @@ const AdminProductEdit = () => {
       setWarranty('2 Jahre Garantie');
       setReturnPolicy('30 Tage Rückgabe');
     }
-  }, [category, newCategory]);
+  }, [category, newCategory, unit, unitSize]);
 
   useEffect(() => {
     const fetchAllProducts = async () => {
@@ -90,7 +96,6 @@ const AdminProductEdit = () => {
           setNutrition(data.nutrition || '');
           setUnit(data.unit || 'g');
           
-          // FIX: Sicherstellen, dass das Gewicht beim Laden IMMER eine Zahl ist
           const loadedWeight = data.unitSize || data.weight || '';
           setUnitSize(loadedWeight !== '' ? Number(loadedWeight) : ''); 
 
@@ -203,7 +208,8 @@ const AdminProductEdit = () => {
         oldPrice: Number(oldPrice), 
         deliveryType, 
         isDeposit: Boolean(isDeposit),
-        depositValue: Number(depositValue)
+        depositValue: Number(depositValue),
+        isFresh: finalCategory === "Frische Lebensmittel" || deliveryType === 'local'
       };
 
       if (id) { await api.put(`/products/${id}`, productData); } 
@@ -296,12 +302,21 @@ const AdminProductEdit = () => {
               </div>
               <div className="space-y-4 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Kategorie</label>
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Kategorie & Logistik</label>
                   <select value={category} onChange={(e) => { setCategory(e.target.value); setNewCategory(''); }} className="w-full bg-white border-2 border-transparent p-4 rounded-2xl focus:border-cyan-500 transition-all outline-none font-bold text-slate-800">
                     <option value="">Wählen...</option>
                     {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
+                {/* LIEFER-OPTION AKTIVIERT */}
+                <select 
+                    value={deliveryType} 
+                    onChange={(e) => setDeliveryType(e.target.value)} 
+                    className={`w-full border-2 p-4 rounded-2xl outline-none font-black text-[10px] uppercase tracking-widest transition-all ${deliveryType === 'local' ? 'bg-cyan-500 text-white border-transparent' : 'bg-white border-cyan-100 text-cyan-600'}`}
+                >
+                    <option value="all">📦 Post-Versand (Überall)</option>
+                    <option value="local">🏠 Nur Braunau & Umgebung</option>
+                </select>
                 <input type="text" placeholder="Eigene Kategorie..." value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full bg-white border-2 border-cyan-100 p-4 rounded-2xl focus:border-cyan-500 outline-none font-black text-[10px] uppercase text-cyan-600 tracking-widest placeholder:text-cyan-200" />
               </div>
             </div>
@@ -372,13 +387,12 @@ const AdminProductEdit = () => {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-cyan-600 ml-1 italic tracking-widest">Netto-Inhalt (Nur Zahl!)</label>
+                <label className={`text-[10px] font-black uppercase ml-1 italic tracking-widest ${unit === 'kg' && Number(unitSize) >= 5 ? 'text-rose-500 underline decoration-rose-200' : 'text-cyan-600'}`}>Netto-Inhalt (Nur Zahl!)</label>
                 <input 
                   type="number" 
                   value={unitSize} 
-                  // FIX: Beim Tippen sofort in Zahl umwandeln
                   onChange={(e) => setUnitSize(e.target.value === '' ? '' : Number(e.target.value))} 
-                  className="w-full bg-white border-2 border-cyan-100 p-4 rounded-2xl outline-none font-black text-lg text-slate-800 focus:border-cyan-500 shadow-sm transition-all" 
+                  className={`w-full bg-white border-2 p-4 rounded-2xl outline-none font-black text-lg text-slate-800 focus:border-cyan-500 shadow-sm transition-all ${unit === 'kg' && Number(unitSize) >= 5 ? 'border-rose-200' : 'border-cyan-100'}`} 
                   placeholder="z.B. 500" 
                 />
               </div>
@@ -403,15 +417,20 @@ const AdminProductEdit = () => {
             </div>
           </div>
 
-          <div className={`p-10 rounded-[3.5rem] text-white shadow-2xl border-b-8 sticky top-10 transition-all duration-500 ${isPromotion ? 'bg-rose-600 border-rose-900 shadow-rose-200' : 'bg-slate-900 border-cyan-500 shadow-slate-200'}`}>
-            <p className="text-[9px] font-black text-cyan-400 uppercase mb-5 tracking-[0.3em] italic">Vorschau</p>
+          <div className={`p-10 rounded-[3.5rem] text-white shadow-2xl border-b-8 sticky top-10 transition-all duration-500 ${deliveryType === 'local' ? 'bg-cyan-600 border-cyan-800' : (isPromotion ? 'bg-rose-600 border-rose-900' : 'bg-slate-900 border-cyan-500')}`}>
+            <p className="text-[9px] font-black text-cyan-400 uppercase mb-5 tracking-[0.3em] italic">Vorschau & Logistik</p>
             <h4 className="text-2xl font-black uppercase tracking-tighter mb-2 truncate leading-none">{name || 'Produktname'}</h4>
             <div className="flex flex-col gap-1 mb-10">
               <p className="text-5xl font-black text-white">{Number(price).toFixed(2)}€</p>
-              <p className="text-[10px] text-cyan-400 font-black uppercase tracking-widest opacity-80">
-                {/* FIX: In der Vorschau ebenfalls Number nutzen */}
-                {unitSize !== '' ? `${unitSize}${unit} Netto` : 'Keine Mengenangabe'}
-              </p>
+              <div className="flex flex-col gap-1 mt-2">
+                <p className="text-[10px] text-cyan-300 font-black uppercase tracking-widest">
+                  {unitSize !== '' ? `${unitSize}${unit} Netto` : 'Keine Mengenangabe'}
+                </p>
+                <p className={`text-[10px] font-black uppercase flex items-center gap-2 ${deliveryType === 'local' ? 'text-amber-300' : 'text-emerald-400'}`}>
+                   <span className={`w-2 h-2 rounded-full ${deliveryType === 'local' ? 'bg-amber-300 animate-pulse' : 'bg-emerald-400'}`}></span>
+                   {deliveryType === 'local' ? 'Nur Braunau Lieferung' : 'DHL / Post Versand'}
+                </p>
+              </div>
             </div>
             
             <button 
