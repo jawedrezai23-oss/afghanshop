@@ -26,7 +26,6 @@ const transporter = nodemailer.createTransport({
 
 // --- HILFSFUNKTION FÜR EPC-QR-CODE ---
 const generatePaymentQRCode = async (order) => {
-  // Beibehalten der neuen IBAN aus Code 2
   const iban = "IE49SUMU99036512768145";
   const bic = "SUMUIE22XXX";
   const name = "Jawed REZAI";
@@ -68,7 +67,7 @@ const drawInvoiceContent = async (doc, order) => {
   doc.moveDown(2);
   doc.fillColor('#0099b5').fontSize(22).font('Helvetica-Bold').text('RECHNUNG', 50, 150);
   doc.fillColor('#444444').fontSize(10).font('Helvetica')
-    .text(`Rechnungsnr: ${order.invoiceNumber}`, 50, 175)
+    .text(`Rechnungsnr: RE-${order.invoiceNumber}`, 50, 175) // Präfix RE- hinzugefügt
     .text(`Datum: ${new Date(order.createdAt).toLocaleDateString('de-DE')}`, 50, 190);
 
   const tableTop = 260;
@@ -192,14 +191,12 @@ export const addOrder = async (req, res) => {
   try {
     const { orderItems, shippingAddress } = req.body;
 
-    // --- LOGIK: PRÜFUNG AUF FRISCHWARE / REIS (NUR BRAUNAU) ---
     const isBraunau = shippingAddress.postalCode === '5280' || 
                       shippingAddress.city.toLowerCase().includes('braunau');
 
     for (const item of orderItems) {
       const product = await Product.findById(item.product);
       if (product) {
-        // Falls Produkt Frischware ist oder schwer (z.B. Reis ab 5kg) und nicht Braunau
         const isFresh = product.category === 'Frischware' || product.isFresh;
         const isHeavy = product.weight >= 5000 || (product.name.toLowerCase().includes('reis') && product.weight >= 4000);
 
@@ -212,7 +209,8 @@ export const addOrder = async (req, res) => {
     }
 
     const lastOrder = await Order.findOne().sort({ invoiceNumber: -1 });
-    const newInvoiceNumber = lastOrder && lastOrder.invoiceNumber ? lastOrder.invoiceNumber + 1 : 1014;
+    // START BEI 1063
+    const newInvoiceNumber = lastOrder && lastOrder.invoiceNumber >= 1063 ? lastOrder.invoiceNumber + 1 : 1063;
     
     const itemsPrice = orderItems.reduce((acc, item) => acc + item.price * item.qty, 0);
 
@@ -234,7 +232,6 @@ export const addOrder = async (req, res) => {
     const createdOrder = await order.save();
     const populatedOrder = await Order.findById(createdOrder._id).populate('user', 'name email');
 
-    // Lagerbestand aktualisieren
     for (const item of createdOrder.orderItems) {
       const product = await Product.findById(item.product);
       if (product) {
@@ -254,7 +251,6 @@ export const addOrder = async (req, res) => {
       }
     }
 
-    // PDF & Mail Versand
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     let buffers = [];
     doc.on('data', buffers.push.bind(buffers));
@@ -265,14 +261,15 @@ export const addOrder = async (req, res) => {
         to: populatedOrder.user.email,
         subject: `Rechnung RE-${populatedOrder.invoiceNumber}`,
         text: `Vielen Dank für Ihre Bestellung! Bitte überweisen Sie den Betrag auf unser Konto: Jawed REZAI, IBAN: IE49SUMU99036512768145`,
-        attachments: [{ filename: `Rechnung_${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
+        // DATEINAME GEÄNDERT auf RE-XXXX.pdf
+        attachments: [{ filename: `RE-${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
       };
       const adminMail = {
         from: `"AfghanShop System" <${process.env.EMAIL_USER}>`,
         to: "infoafghanshop@aol.com, jawedrezai23@hotmail.com",
         subject: `Neue Bestellung RE-${populatedOrder.invoiceNumber}`,
         html: `<p>Neue Bestellung von ${populatedOrder.shippingAddress.fullName}.</p>`,
-        attachments: [{ filename: `Rechnung_${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
+        attachments: [{ filename: `RE-${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
       };
       try {
         await transporter.sendMail(mailOptions);
@@ -322,7 +319,8 @@ export const generateInvoice = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Bestellung nicht gefunden' });
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=Rechnung_${order.invoiceNumber}.pdf`);
+    // DATEINAME AUCH HIER GEÄNDERT
+    res.setHeader('Content-Disposition', `attachment; filename=RE-${order.invoiceNumber}.pdf`);
     doc.pipe(res);
     await drawInvoiceContent(doc, order);
   } catch (error) { res.status(500).json({ message: error.message }); }
@@ -424,7 +422,8 @@ export const updateOrderToPaidAdmin = async (req, res) => {
 export const getNextInvoiceNumber = async (req, res) => {
   try {
     const lastOrder = await Order.findOne().sort({ invoiceNumber: -1 });
-    const nextNumber = lastOrder && lastOrder.invoiceNumber ? lastOrder.invoiceNumber + 1 : 1014;
+    // START BEI 1063
+    const nextNumber = lastOrder && lastOrder.invoiceNumber >= 1063 ? lastOrder.invoiceNumber + 1 : 1063;
     res.json({ nextInvoiceNumber: nextNumber });
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
