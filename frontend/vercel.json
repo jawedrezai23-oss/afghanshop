@@ -1,5 +1,10 @@
 {
+  "version": 2,
   "rewrites": [
+    {
+      "source": "/api/keep-warm",
+      "destination": "/api/keep-warm.js"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
