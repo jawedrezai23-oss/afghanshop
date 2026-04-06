@@ -7,13 +7,22 @@ import { getOptimizedImage } from '../utils/cloudinaryHelper';
 
 export default function Home() {
   const { t } = useTranslation();
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  // 1. INITIALISIERUNG MIT CACHE-CHECK (Sofort-Anzeige beim zweiten Besuch)
+  const [products, setProducts] = useState(() => {
+    const saved = localStorage.getItem('cached_products');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [categories, setCategories] = useState(() => {
+    const saved = localStorage.getItem('cached_categories');
+    return saved ? JSON.parse(saved) : ['Alle'];
+  });
+
+  // Wenn Cache da ist, zeigen wir keinen initialen Spinner
+  const [loading, setLoading] = useState(products.length === 0);
   const [addedId, setAddedId] = useState(null);
-  
-  const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Alle');
-  
   const [sortBy, setSortBy] = useState('name-asc'); 
 
   const productsRef = useRef(null);
@@ -25,18 +34,27 @@ export default function Home() {
     productsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // 2. FETCH MIT BACKGROUND-UPDATE (Stale-While-Revalidate)
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        setLoading(true);
-        const { data } = await api.get('/products');
-        setProducts(data);
+        // Falls kein Cache da ist, zeigen wir den Spinner
+        if (products.length === 0) setLoading(true);
 
+        const { data } = await api.get('/products');
+        
         const uniqueCategories = ['Alle', ...new Set(data
           .map(p => p.category)
           .filter(cat => cat && cat.trim() !== '')
         )];
+
+        // State aktualisieren
+        setProducts(data);
         setCategories(uniqueCategories);
+        
+        // Cache für den nächsten Besuch befüllen
+        localStorage.setItem('cached_products', JSON.stringify(data));
+        localStorage.setItem('cached_categories', JSON.stringify(uniqueCategories));
         
         setLoading(false);
       } catch (err) {
@@ -98,6 +116,7 @@ export default function Home() {
     setTimeout(() => setAddedId(null), 1000);
   };
 
+  // 3. RENDER-LOGIK
   if (loading) return (
     <div className="flex justify-center items-center min-h-[60vh]">
       <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-cyan-600" role="status">
@@ -176,7 +195,6 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 items-center">
-            {/* SORTIERUNG DROPDOWN MIT LABEL */}
             <div className="relative w-full md:w-auto">
               <label htmlFor="sort-products" className="sr-only">Produkte sortieren nach</label>
               <select 
@@ -309,6 +327,7 @@ export default function Home() {
           </div>
         )}
         
+        {/* KONTAKT SECTION */}
         <section className="bg-cyan-500 rounded-[3rem] p-10 md:p-16 text-slate-900 relative overflow-hidden shadow-2xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-400 rounded-full -mr-20 -mt-20 opacity-40 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-600 rounded-full -ml-10 -mb-10 opacity-30 blur-2xl"></div>
