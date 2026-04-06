@@ -1,15 +1,19 @@
 {
-  "version": 2,
   "rewrites": [
     {
-      "source": "/api/keep-warm",
-      "destination": "/api/keep-warm.js"
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
+  "functions": {
+    "api/*.js": {
+      "runtime": "vercel-node@latest"
+    }
+  },
   "crons": [
     {
       "path": "/api/keep-warm",
