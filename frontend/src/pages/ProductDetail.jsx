@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
+// --- NEU: IMPORT DES HELPERS ---
+import { getOptimizedImage } from '../utils/cloudinaryHelper';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -28,13 +30,13 @@ export default function ProductDetail() {
     const cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
     const existItem = cartItems.find(x => x._id === product._id);
     
-    // --- FIX: GEWICHT ALS REINE ZAHL SPEICHERN ---
     const pureWeight = product.weight ? parseFloat(String(product.weight).replace(/[^\d.]/g, '')) : 0;
 
     const itemToAdd = {
       _id: product._id,
       name: product.name,
-      image: product.image,
+      // Wir speichern im Warenkorb das optimierte Vorschaubild (200px reicht da völlig)
+      image: getOptimizedImage(product.image, 200),
       price: product.price,
       qty: Number(qty),
       countInStock: product.countInStock,
@@ -67,15 +69,18 @@ export default function ProductDetail() {
     </div>
   );
 
-  const displayImage = product.image?.startsWith('http')
+  // --- OPTIMIERUNG HIER ---
+  const rawImageUrl = product.image?.startsWith('http')
     ? product.image
     : `https://afghanshop-backend.onrender.com${product.image}`;
+  
+  // Wir nutzen 1000px für die Detailansicht
+  const displayImage = getOptimizedImage(rawImageUrl, 1000);
 
   const discountPercent = product.isPromotion && product.oldPrice > 0
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
     : 0;
 
-  // --- HILFSFUNKTION FÜR GRUNDPREIS ---
   const renderBasePrice = () => {
     const pureWeight = product.weight ? parseFloat(String(product.weight).replace(/[^\d.]/g, '')) : 0;
     if (pureWeight > 0) {
@@ -117,6 +122,7 @@ export default function ProductDetail() {
               src={displayImage}
               alt={product.name}
               className="w-full h-full object-contain p-8 group-hover:scale-105 transition-transform duration-700"
+              fetchpriority="high" // Damit das Hauptbild bevorzugt geladen wird
             />
           </div>
 
@@ -175,7 +181,6 @@ export default function ProductDetail() {
 
                     <div className="ml-auto text-right">
                       <span className="text-xl font-black text-slate-900 uppercase">
-                        {/* FIX: Verhindert die Anzeige von "500500g" */}
                         {product.weight && (
                           <span>
                             {String(product.weight).replace(/[^\d.]/g, '')}
@@ -211,6 +216,7 @@ export default function ProductDetail() {
               )}
             </div>
 
+            {/* Icons... */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm text-center">
                 <span className="text-2xl block mb-2">🚚</span>

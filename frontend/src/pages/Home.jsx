@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
+// --- NEU: IMPORT DES HELPERS ---
+import { getOptimizedImage } from '../utils/cloudinaryHelper';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -12,7 +14,6 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Alle');
   
-  // --- GEÄNDERT: Standardmäßig nach Name sortieren ---
   const [sortBy, setSortBy] = useState('name-asc'); 
 
   const productsRef = useRef(null);
@@ -46,9 +47,7 @@ export default function Home() {
     fetchProducts();
   }, []);
 
-  // --- KOMBINIERTE FILTER- & SORTIER-LOGIK ---
   const getProcessedProducts = () => {
-    // 1. Filtern
     let filtered = products.filter(p => {
       const matchesKeyword = p.name.toLowerCase().includes(keyword.toLowerCase()) || 
                             p.category?.toLowerCase().includes(keyword.toLowerCase());
@@ -56,7 +55,6 @@ export default function Home() {
       return matchesKeyword && matchesCategory;
     });
 
-    // 2. Sortieren
     return filtered.sort((a, b) => {
       if (sortBy === 'price-asc') return a.price - b.price;
       if (sortBy === 'price-desc') return b.price - a.price;
@@ -85,6 +83,8 @@ export default function Home() {
       if (stock > 0) {
         cartItems.push({ 
           ...product,
+          // --- FIX: Optimiertes Bild für den Warenkorb speichern ---
+          image: getOptimizedImage(product.image, 200),
           qty: 1 
         });
       } else {
@@ -166,7 +166,6 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 mt-16" ref={productsRef}>
         
-        {/* HEADER & FILTER ZEILE */}
         <div className="mb-12 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div>
             <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
@@ -176,7 +175,6 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 items-center">
-            {/* SORTIERUNG DROPDOWN */}
             <div className="relative w-full md:w-auto">
               <select 
                 value={sortBy}
@@ -194,7 +192,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* KATEGORIEN BUTTONS */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto">
               {categories.map((cat) => (
                 <button
@@ -222,6 +219,13 @@ export default function Home() {
             {finalProducts.map((product) => {
               const isOutOfStock = Number(product.countInStock) <= 0;
 
+              // --- FIX: BILD URL OPTIMIEREN ---
+              const rawImg = product.image && product.image.startsWith('http') 
+                ? product.image 
+                : `https://afghanshop-backend.onrender.com${product.image}`;
+              
+              const optimizedImg = getOptimizedImage(rawImg, 500);
+
               return (
                 <div key={product._id} className="group bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden flex flex-col relative">
                   
@@ -243,9 +247,10 @@ export default function Home() {
 
                   <Link to={`/product/${product._id}`} className="relative h-72 m-4 overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-slate-50 to-white block">
                     <img
-                      src={product.image && product.image.startsWith('http') ? product.image : `http://localhost:5001${product.image}`}
+                      src={optimizedImg} // <-- OPTIMIERTES BILD
                       alt={product.name}
                       className={`w-full h-full object-contain p-8 transition-all duration-700 group-hover:scale-110 group-hover:rotate-2 ${isOutOfStock ? 'opacity-40 grayscale' : ''}`}
+                      loading="lazy" // <-- LAZY LOADING
                     />
                     <div className="absolute inset-0 bg-cyan-900/0 group-hover:bg-cyan-900/5 transition-colors duration-500"></div>
                   </Link>
@@ -305,7 +310,7 @@ export default function Home() {
           </div>
         )}
         
-        {/* KONTAKT SEKTION */}
+        {/* KONTAKT SEKTION BLEIBT GLEICH */}
         <div className="bg-cyan-500 rounded-[3rem] p-10 md:p-16 text-slate-900 relative overflow-hidden shadow-2xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-400 rounded-full -mr-20 -mt-20 opacity-40 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-600 rounded-full -ml-10 -mb-10 opacity-30 blur-2xl"></div>

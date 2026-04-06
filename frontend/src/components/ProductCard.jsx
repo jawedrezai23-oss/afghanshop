@@ -1,7 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+// --- NEU: IMPORT DES HELPERS ---
+import { getOptimizedImage } from '../utils/cloudinaryHelper';
 
 const ProductCard = ({ product, addToCartHandler }) => {
+  
+  // Hilfs-Variable für das Bild, damit der Code unten sauber bleibt
+  const rawImageUrl = product.image?.startsWith('http') 
+    ? product.image 
+    : `https://afghanshop-backend.onrender.com${product.image}`;
+
+  // Hier wenden wir die Optimierung an (600px Breite für die Karten-Ansicht)
+  const optimizedImageUrl = getOptimizedImage(rawImageUrl, 600);
+
   return (
     <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 flex flex-col h-full relative">
       
@@ -18,9 +29,10 @@ const ProductCard = ({ product, addToCartHandler }) => {
       <div className="relative overflow-hidden aspect-square bg-gray-100">
         <Link to={`/product/${product._id}`}>
           <img 
-            src={product.image?.startsWith('http') ? product.image : `https://afghanshop-backend.onrender.com${product.image}`} 
+            src={optimizedImageUrl} // <-- NUTZT JETZT DAS OPTIMIERTE BILD
             alt={product.name} 
             className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${product.countInStock === 0 ? 'grayscale opacity-50' : ''}`}
+            loading="lazy" // <-- NEU: Lädt Bilder erst, wenn sie im Sichtfeld sind
           />
         </Link>
         
