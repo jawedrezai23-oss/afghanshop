@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
-// --- NEU: IMPORT DES HELPERS ---
+// --- IMPORT DES HELPERS ---
 import { getOptimizedImage } from '../utils/cloudinaryHelper';
 
 export default function Home() {
@@ -83,7 +83,6 @@ export default function Home() {
       if (stock > 0) {
         cartItems.push({ 
           ...product,
-          // --- FIX: Optimiertes Bild für den Warenkorb speichern ---
           image: getOptimizedImage(product.image, 200),
           qty: 1 
         });
@@ -101,7 +100,9 @@ export default function Home() {
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-[60vh]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-cyan-600"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-cyan-600" role="status">
+        <span className="sr-only">Laden...</span>
+      </div>
     </div>
   );
 
@@ -109,7 +110,7 @@ export default function Home() {
     <div className="pb-20 bg-slate-50 min-h-screen font-sans">
       
       {!keyword && (
-        <div className="relative bg-cyan-600 overflow-hidden">
+        <header className="relative bg-cyan-600 overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500 rounded-full -mr-20 -mt-20 opacity-50 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-700 rounded-full -ml-10 -mb-10 opacity-30 blur-2xl"></div>
 
@@ -129,7 +130,7 @@ export default function Home() {
 
               <div className="bg-white/20 backdrop-blur-lg border-2 border-yellow-400 p-6 rounded-[2.5rem] mb-10 inline-block shadow-[0_0_20px_rgba(250,204,21,0.4)] animate-[pulse-slow_3s_infinite]">
                 <div className="flex items-center gap-5 text-left">
-                  <div className="bg-yellow-400 text-cyan-900 w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg shrink-0 animate-bounce">🚚</div>
+                  <div className="bg-yellow-400 text-cyan-900 w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg shrink-0 animate-bounce" aria-hidden="true">🚚</div>
                   <div>
                     <p className="text-base md:text-lg font-black text-white leading-tight">
                       In <span className="text-yellow-300 underline decoration-2 underline-offset-4">Braunau am Inn</span> und Umgebung
@@ -161,10 +162,10 @@ export default function Home() {
                </div>
             </div>
           </div>
-        </div>
+        </header>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 mt-16" ref={productsRef}>
+      <main className="max-w-7xl mx-auto px-4 mt-16" ref={productsRef}>
         
         <div className="mb-12 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div>
@@ -175,8 +176,11 @@ export default function Home() {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4 items-center">
+            {/* SORTIERUNG DROPDOWN MIT LABEL */}
             <div className="relative w-full md:w-auto">
+              <label htmlFor="sort-products" className="sr-only">Produkte sortieren nach</label>
               <select 
+                id="sort-products"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="w-full md:w-auto appearance-none bg-white border border-slate-200 px-6 py-2.5 rounded-2xl font-bold text-sm text-slate-700 outline-none focus:border-cyan-500 shadow-sm cursor-pointer"
@@ -188,15 +192,16 @@ export default function Home() {
                 <option value="promotion">🔥 Aktuelle Angebote</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
               </div>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto">
+            <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto" aria-label="Kategorien">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
+                  aria-pressed={selectedCategory === cat}
                   className={`px-6 py-2.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap shadow-sm ${
                     selectedCategory === cat 
                     ? 'bg-cyan-600 text-white shadow-cyan-200' 
@@ -206,7 +211,7 @@ export default function Home() {
                   {cat}
                 </button>
               ))}
-            </div>
+            </nav>
           </div>
         </div>
 
@@ -218,8 +223,6 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-24">
             {finalProducts.map((product) => {
               const isOutOfStock = Number(product.countInStock) <= 0;
-
-              // --- FIX: BILD URL OPTIMIEREN ---
               const rawImg = product.image && product.image.startsWith('http') 
                 ? product.image 
                 : `https://afghanshop-backend.onrender.com${product.image}`;
@@ -227,7 +230,7 @@ export default function Home() {
               const optimizedImg = getOptimizedImage(rawImg, 500);
 
               return (
-                <div key={product._id} className="group bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden flex flex-col relative">
+                <article key={product._id} className="group bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden flex flex-col relative">
                   
                   {product.isPromotion && (
                     <div className="absolute top-5 right-5 z-30">
@@ -245,12 +248,12 @@ export default function Home() {
                     </div>
                   )}
 
-                  <Link to={`/product/${product._id}`} className="relative h-72 m-4 overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-slate-50 to-white block">
+                  <Link to={`/product/${product._id}`} className="relative h-72 m-4 overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-slate-50 to-white block" aria-label={`${product.name} Details ansehen`}>
                     <img
-                      src={optimizedImg} // <-- OPTIMIERTES BILD
+                      src={optimizedImg}
                       alt={product.name}
                       className={`w-full h-full object-contain p-8 transition-all duration-700 group-hover:scale-110 group-hover:rotate-2 ${isOutOfStock ? 'opacity-40 grayscale' : ''}`}
-                      loading="lazy" // <-- LAZY LOADING
+                      loading="lazy"
                     />
                     <div className="absolute inset-0 bg-cyan-900/0 group-hover:bg-cyan-900/5 transition-colors duration-500"></div>
                   </Link>
@@ -282,36 +285,31 @@ export default function Home() {
                               / {product.unit || 'Stk'}
                             </span>
                           )}
-                          {product.isPromotion && product.oldPrice > 0 && (
-                            <span className="text-sm text-slate-300 line-through font-bold mb-0.5 ml-1">
-                              {product.oldPrice.toFixed(2)}€
-                            </span>
-                          )}
                         </div>
                       </div>
                       <button 
                         onClick={() => addToCartHandler(product)}
                         disabled={isOutOfStock}
+                        aria-label={`${product.name} zum Warenkorb hinzufügen`}
                         className={`w-14 h-14 flex items-center justify-center rounded-[1.25rem] transition-all shadow-lg ${isOutOfStock ? 'bg-slate-100 text-slate-300 cursor-not-allowed' : 'bg-cyan-500 text-white hover:bg-cyan-600 shadow-cyan-100 active:scale-90'}`}
                       >
                         {addedId === product._id ? (
-                          <span className="text-xl">✓</span>
+                          <span className="text-xl" aria-hidden="true">✓</span>
                         ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6" aria-hidden="true">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                           </svg>
                         )}
                       </button>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )}
         
-        {/* KONTAKT SEKTION BLEIBT GLEICH */}
-        <div className="bg-cyan-500 rounded-[3rem] p-10 md:p-16 text-slate-900 relative overflow-hidden shadow-2xl">
+        <section className="bg-cyan-500 rounded-[3rem] p-10 md:p-16 text-slate-900 relative overflow-hidden shadow-2xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-400 rounded-full -mr-20 -mt-20 opacity-40 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-600 rounded-full -ml-10 -mb-10 opacity-30 blur-2xl"></div>
 
@@ -323,7 +321,7 @@ export default function Home() {
               
               <div className="space-y-8">
                 <div className="flex items-center gap-6 justify-center md:justify-start">
-                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm">📍</div>
+                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm" aria-hidden="true">📍</div>
                   <div>
                     <p className="text-[10px] font-bold uppercase text-slate-800 tracking-widest mb-1">Anschrift</p>
                     <p className="text-lg font-bold">Braunau am Inn, Österreich</p>
@@ -331,7 +329,7 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-6 justify-center md:justify-start">
-                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm">📞</div>
+                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm" aria-hidden="true">📞</div>
                   <div>
                     <p className="text-[10px] font-bold uppercase text-slate-800 tracking-widest mb-1">Telefon / WhatsApp</p>
                     <a href="tel:+4369010088854" className="text-lg font-bold hover:text-white transition-colors">+43 69010088854</a>
@@ -339,7 +337,7 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-6 justify-center md:justify-start">
-                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm">📧</div>
+                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm" aria-hidden="true">📧</div>
                   <div>
                     <p className="text-[10px] font-bold uppercase text-slate-800 tracking-widest mb-1">E-Mail</p>
                     <a href="mailto:infoafghanshop@aol.com" className="text-lg font-bold hover:text-white transition-colors">infoafghanshop@aol.com</a>
@@ -353,25 +351,36 @@ export default function Home() {
               <p className="text-slate-800 mb-10 text-sm font-medium">Immer aktuell informiert</p>
               
               <div className="flex gap-8">
-                <a href="https://www.instagram.com/afghn.shop/" target="_blank" rel="noreferrer" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="Instagram" className="w-10 h-10" />
+                <a href="https://www.instagram.com/afghn.shop/" target="_blank" rel="noreferrer" aria-label="Folge uns auf Instagram" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="" className="w-10 h-10" aria-hidden="true" />
                 </a>
-                <a href="https://www.facebook.com/afghanshop" target="_blank" rel="noreferrer" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="Facebook" className="w-10 h-10" />
+                <a href="https://www.facebook.com/afghanshop" target="_blank" rel="noreferrer" aria-label="Besuche uns auf Facebook" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="" className="w-10 h-10" aria-hidden="true" />
                 </a>
-                <a href="https://wa.me/4369010088854" target="_blank" rel="noreferrer" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-10 h-10" />
+                <a href="https://wa.me/4369010088854" target="_blank" rel="noreferrer" aria-label="Kontaktiere uns via WhatsApp" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="" className="w-10 h-10" aria-hidden="true" />
                 </a>
               </div>
-              <div className="mt-12">
+              <footer className="mt-12">
                 <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-slate-800/60">AFGHAN SHOP BRAUNAU © 2026</p>
-              </div>
+              </footer>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
       
       <style>{`
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border-width: 0;
+        }
         @keyframes pulse-slow {
           0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(250,204,21,0.4); }
           50% { transform: scale(1.03); box-shadow: 0 0 35px rgba(250,204,21,0.6); }
