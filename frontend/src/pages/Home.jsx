@@ -108,19 +108,11 @@ export default function Home() {
     setTimeout(() => setAddedId(null), 1000);
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-[60vh]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-cyan-600" role="status">
-        <span className="sr-only">Laden...</span>
-      </div>
-    </div>
-  );
-
   return (
     <div className="pb-20 bg-slate-50 min-h-screen font-sans">
       
       {!keyword && (
-        <header className="relative bg-cyan-700 overflow-hidden">
+        <header className="relative bg-cyan-700 overflow-hidden min-h-[500px] md:min-h-[600px]">
           <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500 rounded-full -mr-20 -mt-20 opacity-50 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-800 rounded-full -ml-10 -mb-10 opacity-30 blur-2xl"></div>
 
@@ -166,7 +158,6 @@ export default function Home() {
                <div className="bg-white/10 backdrop-blur-xl p-12 rounded-[5rem] border border-white/20 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden group transition-all duration-700">
                   <div className="absolute inset-0 bg-cyan-400/5 group-hover:bg-cyan-400/10 transition-colors"></div>
                   <div className="relative z-10 flex flex-col items-center w-full">
-                    {/* HIER DAS LOGO BILD */}
                     <img 
                       src="/images/logo.png" 
                       alt="AfghanShop Logo" 
@@ -232,7 +223,13 @@ export default function Home() {
           </div>
         </div>
 
-        {finalProducts.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-24">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-cyan-600" role="status">
+              <span className="sr-only">Laden...</span>
+            </div>
+          </div>
+        ) : finalProducts.length === 0 ? (
           <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-slate-300">
              <p className="text-slate-600 font-bold text-xl uppercase">Keine Produkte in dieser Auswahl</p>
           </div>
