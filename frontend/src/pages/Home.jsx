@@ -2,13 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
-// --- IMPORT DES HELPERS ---
 import { getOptimizedImage } from '../utils/cloudinaryHelper';
 
 export default function Home() {
   const { t } = useTranslation();
 
-  // 1. INITIALISIERUNG MIT CACHE-CHECK
   const [products, setProducts] = useState(() => {
     const saved = localStorage.getItem('cached_products');
     return saved ? JSON.parse(saved) : [];
@@ -33,7 +31,6 @@ export default function Home() {
     productsRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 2. FETCH MIT BACKGROUND-UPDATE
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -123,7 +120,7 @@ export default function Home() {
     <div className="pb-20 bg-slate-50 min-h-screen font-sans">
       
       {!keyword && (
-        <header className="relative bg-cyan-700 overflow-hidden"> {/* Kontrast erhöht: bg-cyan-600 -> 700 */}
+        <header className="relative bg-cyan-700 overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500 rounded-full -mr-20 -mt-20 opacity-50 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-800 rounded-full -ml-10 -mb-10 opacity-30 blur-2xl"></div>
 
@@ -137,7 +134,7 @@ export default function Home() {
                 Beste Afghanische & <span className="text-cyan-200">Iranische Produkte</span>
               </h1>
 
-              <p className="text-white text-lg md:text-xl mb-6 font-medium leading-relaxed"> {/* Text-Farbe für Kontrast verbessert */}
+              <p className="text-white text-lg md:text-xl mb-6 font-medium leading-relaxed">
                 Entdecken Sie Spezialitäten wie Basmati Reis, Grüne und Schwarze Tees, Safran, getrocknete Früchte und vieles mehr. Kaufen Sie bequem online.
               </p>
 
@@ -169,6 +166,15 @@ export default function Home() {
                <div className="bg-white/10 backdrop-blur-xl p-12 rounded-[5rem] border border-white/20 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden group transition-all duration-700">
                   <div className="absolute inset-0 bg-cyan-400/5 group-hover:bg-cyan-400/10 transition-colors"></div>
                   <div className="relative z-10 flex flex-col items-center w-full">
+                    {/* HIER DAS LOGO BILD */}
+                    <img 
+                      src="/images/logo.png" 
+                      alt="AfghanShop Logo" 
+                      className="h-32 w-32 object-contain mb-4"
+                      fetchpriority="high"
+                      loading="eager"
+                      decoding="async"
+                    />
                     <div className="h-1.5 w-20 bg-cyan-200 rounded-full mb-6"></div>
                     <p className="text-white font-black uppercase tracking-[0.4em] text-[15px] drop-shadow-md text-center">Dein Afghanshop</p>
                   </div>
@@ -179,7 +185,6 @@ export default function Home() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 mt-16" ref={productsRef}>
-        
         <div className="mb-12 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div>
             <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
@@ -263,16 +268,17 @@ export default function Home() {
                   <Link to={`/product/${product._id}`} className="relative h-72 m-4 overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-slate-100 to-white block" aria-label={`${product.name} Details ansehen`}>
                     <img
                       src={optimizedImg}
-                      alt="" // Alt leer, da h3 den Namen liefert (verhindert Doppellesen bei Screenreadern)
+                      alt="" 
                       className={`w-full h-full object-contain p-8 transition-all duration-700 group-hover:scale-110 group-hover:rotate-2 ${isOutOfStock ? 'opacity-40 grayscale' : ''}`}
                       loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-cyan-900/0 group-hover:bg-cyan-900/5 transition-colors duration-500"></div>
                   </Link>
 
                   <div className="p-7 pt-2 flex flex-col flex-grow">
                     <Link to={`/product/${product._id}`} className="flex-grow">
-                      <p className="text-[10px] font-black text-cyan-700 uppercase tracking-widest mb-1"> {/* Kontrast Fix */}
+                      <p className="text-[10px] font-black text-cyan-700 uppercase tracking-widest mb-1">
                         {product.category} 
                         {product.deliveryType === 'local' && <span className="text-orange-600 ml-2">| 📍 Lokale Lieferung</span>}
                       </p>
@@ -383,28 +389,13 @@ export default function Home() {
       </main>
       
       <style>{`
-        .sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border-width: 0;
-        }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
         @keyframes pulse-slow {
           0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(250,204,21,0.4); }
           50% { transform: scale(1.03); box-shadow: 0 0 35px rgba(250,204,21,0.6); }
         }
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );
