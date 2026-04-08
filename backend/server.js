@@ -24,7 +24,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Erlaubt: 1. Kein Origin (Postman) 2. Deine festen Domains 3. JEDE Vercel-Subdomain
     if (
       !origin || 
       allowedOrigins.includes(origin) || 
@@ -44,7 +43,6 @@ app.use(cors({
 
 app.use(express.json());
 
-// --- BILDER-PFAD FIX (Lokal & Cloudinary Fallback) ---
 const __dirname = path.resolve();
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
 app.use('/images', express.static(path.join(__dirname, '/images')));
@@ -53,20 +51,10 @@ if (!fs.existsSync(path.join(__dirname, '/uploads'))) {
   fs.mkdirSync(path.join(__dirname, '/uploads'), { recursive: true });
 }
 
-// --- NEU: HEALTH-CHECK FÜR MONGO-DB (KEEP-WARM) ---
-// Diese Route wird von cron-job.org aufgerufen
-app.get('/api/health', async (req, res) => {
-  try {
-    const isConnected = mongoose.connection.readyState === 1;
-    res.status(200).json({
-      success: true,
-      status: isConnected ? 'Backend & DB are awake' : 'DB is connecting...',
-      database: isConnected ? 'connected' : 'disconnected',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+// --- OPTIMIERTER MINI-HEALTH-CHECK (KEEP-WARM) ---
+// Wir senden nur noch ein simples "ok", um "Ausgabe zu groß" Fehler zu vermeiden.
+app.get('/api/health', (req, res) => {
+  res.status(200).send('ok'); 
 });
 
 // --- API ROUTEN ---
