@@ -15,20 +15,22 @@ dotenv.config();
 
 const app = express();
 
-// --- DER ULTIMATIVE CORS-FIX ---
+// --- DER KORRIGIERTE CORS-FIX ---
 const allowedOrigins = [
   'http://localhost:5173',
   'https://afghanshop.vercel.app',
-  'https://afghanshop-backend.onrender.com'
+  'https://afghanshop-backend.onrender.com',
+  'https://afghanshop.at',        // Korrekt mit Anführungszeichen und Komma
+  'https://www.afghanshop.at'      // Korrekt mit Anführungszeichen
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Erlaubt Anfragen ohne Origin (wie Postman) oder wenn die URL in der Liste steht
     if (
       !origin || 
       allowedOrigins.includes(origin) || 
-      origin.endsWith('.vercel.app') || 
-      origin.includes('vercel.app')
+      origin.endsWith('.vercel.app')
     ) {
       callback(null, true);
     } else {
@@ -51,8 +53,7 @@ if (!fs.existsSync(path.join(__dirname, '/uploads'))) {
   fs.mkdirSync(path.join(__dirname, '/uploads'), { recursive: true });
 }
 
-// --- OPTIMIERTER MINI-HEALTH-CHECK (KEEP-WARM) ---
-// Wir senden nur noch ein simples "ok", um "Ausgabe zu groß" Fehler zu vermeiden.
+// --- OPTIMIERTER MINI-HEALTH-CHECK ---
 app.get('/api/health', (req, res) => {
   res.status(200).send('ok'); 
 });
