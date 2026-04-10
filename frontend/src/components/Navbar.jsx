@@ -146,7 +146,7 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* USER DROPDOWN */}
+          {/* USER DROPDOWN (Jawed) */}
           {userInfo ? (
             <div className="relative group flex items-center gap-2 md:gap-3 border-l pl-2 md:pl-4 border-slate-200">
               <button className="flex items-center gap-1 md:gap-2">
@@ -167,12 +167,6 @@ export default function Navbar() {
                 <Link to="/profile" className="flex items-center justify-between px-6 py-2.5 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
                   Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
                 </Link>
-                
-                {/* GEFIXT: Link geht jetzt zur Bestellübersicht /orderhistory */}
-                <Link to="/orderhistory" className="block px-6 py-2.5 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
-                  Bestellungen
-                </Link>
-
                 <div className="pt-2 mt-2 border-t border-slate-50">
                   <button onClick={logoutHandler} className="w-full text-left px-6 py-2.5 hover:bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-wider transition-colors">
                     Abmelden
