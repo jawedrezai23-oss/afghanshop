@@ -7,7 +7,7 @@ export default function Navbar() {
   const [cartCount, setCartCount] = useState(0);
   const [keyword, setKeyword] = useState('');
   const [hasUnpaidOrders, setHasUnpaidOrders] = useState(false); 
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false); // NEU: Für mobile Suche
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   
   const userInfoStr = localStorage.getItem('userInfo');
   const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
@@ -45,7 +45,7 @@ export default function Navbar() {
     e.preventDefault();
     if (keyword.trim()) {
       navigate(`/?search=${keyword}`);
-      setIsMobileSearchOpen(false); // Schließt Suche nach Eingabe auf Handy
+      setIsMobileSearchOpen(false);
     } else {
       navigate('/');
     }
@@ -80,7 +80,7 @@ export default function Navbar() {
         </div>
 
         {/* SUCHLEISTE (DESKTOP) */}
-        <form onSubmit={submitHandler} className="flex-grow max-w-md hidden md:block">
+        <form onSubmit={submitHandler} className="flex-grow max-w-md hidden lg:block">
           <div className="relative group">
             <input 
               type="text"
@@ -98,12 +98,26 @@ export default function Navbar() {
         </form>
 
         {/* NAVIGATION ICONS & USER */}
-        <div className="flex items-center gap-2 md:gap-6">
+        <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
           
+          {/* --- NEU: DIREKTER ADMIN LINK (NUR FÜR ADMINS) --- */}
+          {userInfo && userInfo.isAdmin && (
+            <Link 
+              to="/admin/dashboard" 
+              className="hidden sm:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-cyan-600 transition-all shadow-lg group"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Admin</span>
+            </Link>
+          )}
+
           {/* MOBILE SUCHE TRIGGER */}
           <button 
             onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-            className="md:hidden p-2 text-slate-600"
+            className="lg:hidden p-2 text-slate-600"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -136,12 +150,10 @@ export default function Navbar() {
                   </span>
                 )}
               </button>
-              {/* Dropdown bleibt gleich wie in deinem Code */}
+              
               <div className="absolute right-0 mt-2 top-full w-48 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                 {userInfo.isAdmin && (
-                  <>
-                    <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-cyan-700 border-b border-slate-50">Admin Panel</Link>
-                  </>
+                  <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-cyan-700 border-b border-slate-50">Admin Dashboard</Link>
                 )}
                 <Link to="/profile" className="flex items-center justify-between px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider">
                   Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
@@ -160,9 +172,9 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* MOBILE SUCHLEISTE (KLAPPT AUS) */}
+      {/* MOBILE SUCHLEISTE */}
       {isMobileSearchOpen && (
-        <div className="md:hidden px-4 pb-4 animate-in slide-in-from-top duration-300">
+        <div className="lg:hidden px-4 pb-4 animate-in slide-in-from-top duration-300">
           <form onSubmit={submitHandler} className="relative">
             <input 
               type="text"
