@@ -100,7 +100,7 @@ export default function Navbar() {
         {/* NAVIGATION ICONS & USER */}
         <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
           
-          {/* --- NEU: DIREKTER ADMIN LINK (NUR FÜR ADMINS) --- */}
+          {/* DIREKTER ADMIN LINK (Quick Access) */}
           {userInfo && userInfo.isAdmin && (
             <Link 
               to="/admin/dashboard" 
@@ -110,7 +110,7 @@ export default function Navbar() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
               </span>
-              <span className="text-[10px] font-black uppercase tracking-widest">Admin</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Admin Panel</span>
             </Link>
           )}
 
@@ -136,7 +136,7 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* USER / LOGIN */}
+          {/* USER / LOGIN MIT ERWEITERTEM ADMIN DROPDOWN */}
           {userInfo ? (
             <div className="relative group flex items-center gap-2 md:gap-3 border-l pl-2 md:pl-4 border-slate-200">
               <button className="flex items-center gap-1 md:gap-2">
@@ -151,12 +151,17 @@ export default function Navbar() {
                 )}
               </button>
               
-              <div className="absolute right-0 mt-2 top-full w-48 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+              <div className="absolute right-0 mt-2 top-full w-56 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                 {userInfo.isAdmin && (
-                  <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-cyan-700 border-b border-slate-50">Admin Dashboard</Link>
+                  <div className="bg-slate-50 mb-2 border-b border-slate-100">
+                    <p className="px-6 pt-3 pb-1 text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Verwaltung</p>
+                    <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700 italic">Dashboard</Link>
+                    <Link to="/admin/products" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-cyan-600">Produkte verwalten</Link>
+                    <Link to="/admin/orders" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700 mb-2">Bestellungen</Link>
+                  </div>
                 )}
-                <Link to="/profile" className="flex items-center justify-between px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider">
-                  Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
+                <Link to="/profile" className="flex items-center justify-between px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
+                  Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
                 </Link>
                 <button onClick={logoutHandler} className="w-full text-left px-6 py-2 hover:bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-wider">
                   Abmelden
