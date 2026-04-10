@@ -112,33 +112,34 @@ export default function Home() {
     <div className="pb-20 bg-slate-50 min-h-screen font-sans">
       
       {!keyword && (
-        <header className="relative bg-cyan-700 overflow-hidden min-h-[500px] md:min-h-[600px]">
+        <header className="relative bg-cyan-700 overflow-hidden min-h-[450px] md:min-h-[600px]">
           <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500 rounded-full -mr-20 -mt-20 opacity-50 blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-800 rounded-full -ml-10 -mb-10 opacity-30 blur-2xl"></div>
 
-          <div className="max-w-7xl mx-auto px-6 py-16 md:py-28 relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
+          <div className="max-w-7xl mx-auto px-6 py-12 md:py-28 relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="text-white max-w-2xl text-center md:text-left">
-              <span className="bg-white/20 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-6 inline-block border border-white/40">
+              <span className="bg-white/20 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block border border-white/40">
                 Original & Frisch importiert
               </span>
               
-              <h1 className="text-4xl md:text-6xl font-black mb-6 leading-[1.1] tracking-tighter text-white">
+              <h1 className="text-3xl md:text-6xl font-black mb-4 leading-[1.1] tracking-tighter text-white">
                 Beste Afghanische & <span className="text-cyan-200">Iranische Produkte</span>
               </h1>
 
-              <p className="text-white text-lg md:text-xl mb-6 font-medium leading-relaxed">
-                Entdecken Sie Spezialitäten wie Basmati Reis, Grüne und Schwarze Tees, Safran, getrocknete Früchte und vieles mehr. Kaufen Sie bequem online.
+              <p className="text-white/90 text-base md:text-xl mb-6 font-medium leading-relaxed">
+                Entdecken Sie Spezialitäten wie Basmati Reis, Safran und getrocknete Früchte. Kaufen Sie bequem online bei Ihrem Experten in Braunau.
               </p>
 
-              <div className="bg-white/10 backdrop-blur-lg border-2 border-yellow-400 p-6 rounded-[2.5rem] mb-10 inline-block shadow-[0_0_20px_rgba(250,204,21,0.4)] animate-[pulse-slow_3s_infinite]">
-                <div className="flex items-center gap-5 text-left">
-                  <div className="bg-yellow-400 text-cyan-900 w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-lg shrink-0 animate-bounce" aria-hidden="true">🚚</div>
+              {/* LOKALE LIEFERUNG HIGHLIGHT */}
+              <div className="bg-white/10 backdrop-blur-lg border-2 border-yellow-400 p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] mb-8 inline-block shadow-[0_0_20px_rgba(250,204,21,0.3)]">
+                <div className="flex items-center gap-4 text-left">
+                  <div className="bg-yellow-400 text-cyan-900 w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center text-xl md:text-2xl shadow-lg shrink-0 animate-bounce">🚚</div>
                   <div>
-                    <p className="text-base md:text-lg font-black text-white leading-tight">
-                      In <span className="text-yellow-300 underline decoration-2 underline-offset-4">Braunau am Inn</span> und Umgebung
+                    <p className="text-sm md:text-lg font-black text-white leading-tight">
+                      In <span className="text-yellow-300">Braunau am Inn</span> & Umgebung
                     </p>
-                    <p className="text-xs text-white font-bold uppercase tracking-widest mt-1.5">
-                      erfolgt die Zustellung <span className="text-yellow-200">persönlich durch uns!</span>
+                    <p className="text-[10px] md:text-xs text-white font-bold uppercase tracking-widest mt-1">
+                      Zustellung <span className="text-yellow-200">persönlich durch uns!</span>
                     </p>
                   </div>
                 </div>
@@ -147,73 +148,69 @@ export default function Home() {
               <div className="flex justify-center md:justify-start">
                 <button 
                   onClick={scrollToProducts}
-                  className="bg-white text-cyan-800 px-12 py-4 rounded-2xl font-black text-lg transition-all shadow-2xl hover:bg-cyan-50 transform hover:-translate-y-1 active:scale-95"
+                  className="bg-white text-cyan-800 px-10 py-3.5 md:px-12 md:py-4 rounded-2xl font-black text-base md:text-lg transition-all shadow-2xl hover:bg-cyan-50 transform hover:-translate-y-1 active:scale-95"
                 >
                   Jetzt einkaufen
                 </button>
               </div>
             </div>
             
-            <div className="hidden lg:block w-1/3 text-center">
-               <div className="bg-white/10 backdrop-blur-xl p-12 rounded-[5rem] border border-white/20 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden group transition-all duration-700">
-                  <div className="absolute inset-0 bg-cyan-400/5 group-hover:bg-cyan-400/10 transition-colors"></div>
-                  <div className="relative z-10 flex flex-col items-center w-full">
-                    <img 
-                      src="/images/logo.png" 
-                      alt="AfghanShop Logo" 
-                      className="h-32 w-32 object-contain mb-4"
-                      fetchpriority="high"
-                      loading="eager"
-                      decoding="async"
-                    />
-                    <div className="h-1.5 w-20 bg-cyan-200 rounded-full mb-6"></div>
-                    <p className="text-white font-black uppercase tracking-[0.4em] text-[15px] drop-shadow-md text-center">Dein Afghanshop</p>
-                  </div>
-               </div>
+            {/* NEUE HIGHLIGHTS STATT ZWEITEM LOGO */}
+            <div className="hidden lg:grid grid-cols-1 gap-4 w-1/3">
+               {[
+                 { icon: '🌟', title: 'Top Qualität', desc: 'Nur handverlesene Waren' },
+                 { icon: '🍃', title: '100% Frisch', desc: 'Direkt aus dem Import' },
+                 { icon: '🤝', title: 'Fairer Preis', desc: 'Beste Preise in der Region' }
+               ].map((item, index) => (
+                 <div key={index} className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 flex items-center gap-4 group hover:bg-white/20 transition-all">
+                    <div className="text-3xl group-hover:scale-125 transition-transform">{item.icon}</div>
+                    <div>
+                      <p className="text-white font-black text-sm uppercase tracking-wider">{item.title}</p>
+                      <p className="text-cyan-100 text-xs">{item.desc}</p>
+                    </div>
+                 </div>
+               ))}
             </div>
           </div>
         </header>
       )}
 
-      <main className="max-w-7xl mx-auto px-4 mt-16" ref={productsRef}>
-        <div className="mb-12 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+      <main className="max-w-7xl mx-auto px-4 mt-10 md:mt-16" ref={productsRef}>
+        <div className="mb-8 md:mb-12 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">
+            <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter uppercase text-center md:text-left">
               {keyword ? `Ergebnisse für "${keyword}"` : "Unsere Produkte"}
             </h2>
-            <div className="h-1.5 w-24 bg-cyan-600 mt-3 rounded-full"></div>
+            <div className="h-1.5 w-20 md:w-24 bg-cyan-600 mt-2 mx-auto md:mx-0 rounded-full"></div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex flex-col md:flex-row gap-3 items-center">
+            {/* SORTIERUNG */}
             <div className="relative w-full md:w-auto">
-              <label htmlFor="sort-products" className="sr-only">Produkte sortieren nach</label>
               <select 
                 id="sort-products"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full md:w-auto appearance-none bg-white border border-slate-300 px-6 py-2.5 rounded-2xl font-bold text-sm text-slate-800 outline-none focus:border-cyan-500 shadow-sm cursor-pointer"
+                className="w-full md:w-auto appearance-none bg-white border border-slate-300 px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm text-slate-800 outline-none focus:border-cyan-500 shadow-sm cursor-pointer"
               >
                 <option value="newest">Zuletzt hinzugefügt</option>
                 <option value="price-asc">Preis: Niedrig zu Hoch</option>
                 <option value="price-desc">Preis: Hoch zu Niedrig</option>
                 <option value="name-asc">Name: A-Z</option>
-                <option value="promotion">🔥 Aktuelle Angebote</option>
+                <option value="promotion">🔥 Angebote</option>
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-600">
-                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" aria-hidden="true"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-              </div>
             </div>
 
-            <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto" aria-label="Kategorien">
+            {/* KATEGORIEN - MOBILE OPTIMIERT */}
+            <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide w-full md:w-auto px-2" aria-label="Kategorien">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  aria-pressed={selectedCategory === cat}
-                  className={`px-6 py-2.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap shadow-sm ${
+                  className={`px-5 py-2 rounded-xl font-bold text-xs transition-all whitespace-nowrap shadow-sm border ${
                     selectedCategory === cat 
-                    ? 'bg-cyan-700 text-white shadow-cyan-200' 
-                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    ? 'bg-cyan-700 text-white border-cyan-700' 
+                    : 'bg-white text-slate-700 border-slate-200'
                   }`}
                 >
                   {cat}
@@ -224,94 +221,70 @@ export default function Home() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center py-24">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-cyan-600" role="status">
-              <span className="sr-only">Laden...</span>
-            </div>
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-cyan-600"></div>
           </div>
         ) : finalProducts.length === 0 ? (
-          <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-slate-300">
-             <p className="text-slate-600 font-bold text-xl uppercase">Keine Produkte in dieser Auswahl</p>
+          <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-300">
+             <p className="text-slate-500 font-bold uppercase">Keine Produkte gefunden</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mb-24">
+          /* PRODUKT GRID - MOBILE 2 SPALTIG */
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-8 mb-24">
             {finalProducts.map((product) => {
               const isOutOfStock = Number(product.countInStock) <= 0;
               const rawImg = product.image && product.image.startsWith('http') 
                 ? product.image 
                 : `https://afghanshop-backend.onrender.com${product.image}`;
               
-              const optimizedImg = getOptimizedImage(rawImg, 500);
+              const optimizedImg = getOptimizedImage(rawImg, 400);
 
               return (
-                <article key={product._id} className="group bg-white rounded-[3rem] border border-slate-200 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden flex flex-col relative">
+                <article key={product._id} className="group bg-white rounded-[1.5rem] md:rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col relative">
                   
                   {product.isPromotion && (
-                    <div className="absolute top-5 right-5 z-30">
-                      <span className="bg-rose-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-2xl animate-pulse">
-                        {product.promotionLabel || 'Aktion'}
+                    <div className="absolute top-2 right-2 md:top-5 md:right-5 z-20">
+                      <span className="bg-rose-600 text-white px-2 py-1 md:px-4 md:py-2 rounded-lg md:rounded-xl font-black text-[8px] md:text-[10px] uppercase tracking-widest shadow-lg">
+                        Aktion
                       </span>
                     </div>
                   )}
 
-                  {isOutOfStock && (
-                    <div className="absolute top-5 left-5 z-30">
-                      <span className="bg-slate-700 text-white px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-2xl border border-white/20">
-                        Ausverkauft
-                      </span>
-                    </div>
-                  )}
-
-                  <Link to={`/product/${product._id}`} className="relative h-72 m-4 overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-slate-100 to-white block" aria-label={`${product.name} Details ansehen`}>
+                  <Link to={`/product/${product._id}`} className="relative h-40 md:h-72 m-2 md:m-4 overflow-hidden rounded-[1rem] md:rounded-[2.5rem] bg-slate-50 block">
                     <img
                       src={optimizedImg}
-                      alt="" 
-                      className={`w-full h-full object-contain p-8 transition-all duration-700 group-hover:scale-110 group-hover:rotate-2 ${isOutOfStock ? 'opacity-40 grayscale' : ''}`}
+                      alt={product.name} 
+                      className={`w-full h-full object-contain p-4 md:p-8 transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-40 grayscale' : ''}`}
                       loading="lazy"
-                      decoding="async"
                     />
-                    <div className="absolute inset-0 bg-cyan-900/0 group-hover:bg-cyan-900/5 transition-colors duration-500"></div>
                   </Link>
 
-                  <div className="p-7 pt-2 flex flex-col flex-grow">
+                  <div className="p-3 md:p-7 pt-0 flex flex-col flex-grow">
                     <Link to={`/product/${product._id}`} className="flex-grow">
-                      <p className="text-[10px] font-black text-cyan-700 uppercase tracking-widest mb-1">
-                        {product.category} 
-                        {product.deliveryType === 'local' && <span className="text-orange-600 ml-2">| 📍 Lokale Lieferung</span>}
+                      <p className="text-[8px] md:text-[10px] font-black text-cyan-700 uppercase tracking-widest mb-1">
+                        {product.category}
                       </p>
-                      <h3 className={`text-lg font-extrabold mb-2 transition-colors leading-snug ${isOutOfStock ? 'text-slate-500' : 'text-slate-900 group-hover:text-cyan-700'}`}>
+                      <h3 className={`text-xs md:text-lg font-extrabold mb-1 line-clamp-2 ${isOutOfStock ? 'text-slate-400' : 'text-slate-900'}`}>
                         {product.name}
                       </h3>
-                      {product.isDeposit && (
-                        <p className="text-[9px] font-black text-orange-700 uppercase tracking-tighter mb-2">
-                          + {product.depositValue.toFixed(2)}€ Pfand
-                        </p>
-                      )}
                     </Link>
-                    <div className="flex justify-between items-center mt-6">
+                    
+                    <div className="flex justify-between items-center mt-3 md:mt-6">
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Preis</span>
-                        <div className="flex items-end gap-1.5">
-                          <span className={`text-2xl font-black ${isOutOfStock ? 'text-slate-400' : 'text-slate-900'}`}>
-                            {(Number(product.price) || 0).toFixed(2)}€
-                          </span>
-                          {!isOutOfStock && (
-                            <span className="text-[10px] font-black text-cyan-600 uppercase mb-1.5 tracking-tighter">
-                              / {product.unit || 'Stk'}
-                            </span>
-                          )}
-                        </div>
+                        <span className={`text-sm md:text-2xl font-black ${isOutOfStock ? 'text-slate-300' : 'text-slate-900'}`}>
+                          {(Number(product.price) || 0).toFixed(2)}€
+                        </span>
+                        <span className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase">
+                          / {product.unit || 'Stk'}
+                        </span>
                       </div>
                       <button 
                         onClick={() => addToCartHandler(product)}
                         disabled={isOutOfStock}
-                        aria-label={`${product.name} zum Warenkorb hinzufügen`}
-                        className={`w-14 h-14 flex items-center justify-center rounded-[1.25rem] transition-all shadow-lg ${isOutOfStock ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-cyan-100 active:scale-90'}`}
+                        className={`w-10 h-10 md:w-14 md:h-14 flex items-center justify-center rounded-xl md:rounded-[1.25rem] transition-all ${isOutOfStock ? 'bg-slate-100 text-slate-300' : 'bg-cyan-600 text-white hover:bg-cyan-700 active:scale-90 shadow-md'}`}
                       >
-                        {addedId === product._id ? (
-                          <span className="text-xl" aria-hidden="true">✓</span>
-                        ) : (
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6" aria-hidden="true">
+                        {addedId === product._id ? '✓' : (
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5 md:w-6 md:h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                           </svg>
                         )}
@@ -325,74 +298,54 @@ export default function Home() {
         )}
         
         {/* KONTAKT SECTION */}
-        <section className="bg-cyan-600 rounded-[3rem] p-10 md:p-16 text-slate-900 relative overflow-hidden shadow-2xl">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500 rounded-full -mr-20 -mt-20 opacity-40 blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-cyan-700 rounded-full -ml-10 -mb-10 opacity-30 blur-2xl"></div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 relative z-10 text-slate-900">
+        <section className="bg-cyan-600 rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 text-white relative overflow-hidden shadow-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 relative z-10">
             <div>
-              <h2 className="text-3xl font-black uppercase tracking-tighter mb-10 text-center md:text-left text-white">
+              <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter mb-8 text-center md:text-left">
                 Kontakt <span className="text-cyan-900">Daten</span>
               </h2>
               
-              <div className="space-y-8">
-                <div className="flex items-center gap-6 justify-center md:justify-start">
-                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm" aria-hidden="true">📍</div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-900 tracking-widest mb-1">Anschrift</p>
-                    <p className="text-lg font-bold text-white">Braunau am Inn, Österreich</p>
+              <div className="space-y-6">
+                {[
+                  { icon: '📍', label: 'Anschrift', val: 'Braunau am Inn, Österreich' },
+                  { icon: '📞', label: 'Telefon / WhatsApp', val: '+43 69010088854', link: 'tel:+4369010088854' },
+                  { icon: '📧', label: 'E-Mail', val: 'info@afghanshop.at', link: 'mailto:info@afghanshop.at' }
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-4 justify-center md:justify-start">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center border border-white/30">{item.icon}</div>
+                    <div>
+                      <p className="text-[8px] font-bold uppercase text-cyan-900 tracking-widest">{item.label}</p>
+                      {item.link ? (
+                        <a href={item.link} className="text-sm md:text-lg font-bold hover:text-cyan-900 transition-colors">{item.val}</a>
+                      ) : (
+                        <p className="text-sm md:text-lg font-bold">{item.val}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-6 justify-center md:justify-start">
-                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm" aria-hidden="true">📞</div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-900 tracking-widest mb-1">Telefon / WhatsApp</p>
-                    <a href="tel:+4369010088854" className="text-lg font-bold text-white hover:text-cyan-900 transition-colors">+43 69010088854</a>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6 justify-center md:justify-start">
-                  <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm" aria-hidden="true">📧</div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase text-slate-900 tracking-widest mb-1">E-Mail</p>
-                    <a href="mailto:info@afghanshop.at" className="text-lg font-bold text-white hover:text-cyan-900 transition-colors">info@afghanshop.at</a>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div className="bg-slate-900/10 backdrop-blur-md border border-white/30 rounded-[3rem] p-10 flex flex-col items-center justify-center text-center">
-              <h3 className="text-2xl font-black uppercase mb-2 text-white">Folgen Sie uns</h3>
-              <p className="text-slate-900 mb-10 text-sm font-medium">Immer aktuell informiert</p>
-              
-              <div className="flex gap-8">
-                <a href="https://www.instagram.com/afghn.shop/" target="_blank" rel="noreferrer" aria-label="Folge uns auf Instagram" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="Instagram" className="w-10 h-10" />
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center">
+              <h3 className="text-xl font-black uppercase mb-6">Folgen Sie uns</h3>
+              <div className="flex gap-6">
+                <a href="https://www.instagram.com/afghn.shop/" target="_blank" rel="noreferrer" className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg hover:-translate-y-1 transition-transform">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/e7/Instagram_logo_2016.svg" alt="Instagram" className="w-8 h-8" />
                 </a>
-                <a href="https://www.facebook.com/afghanshop" target="_blank" rel="noreferrer" aria-label="Besuche uns auf Facebook" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg" alt="Facebook" className="w-10 h-10" />
-                </a>
-                <a href="https://wa.me/4369010088854" target="_blank" rel="noreferrer" aria-label="Kontaktiere uns via WhatsApp" className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl hover:-translate-y-2 transition-all transform active:scale-95">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-10 h-10" />
+                <a href="https://wa.me/4369010088854" target="_blank" rel="noreferrer" className="w-14 h-14 bg-white rounded-xl flex items-center justify-center shadow-lg hover:-translate-y-1 transition-transform">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-8 h-8" />
                 </a>
               </div>
-              <footer className="mt-12">
-                <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/80">AFGHAN SHOP BRAUNAU © 2026</p>
-              </footer>
+              <p className="mt-8 text-[9px] font-bold uppercase tracking-[0.3em] opacity-80">AFGHAN SHOP BRAUNAU © 2026</p>
             </div>
           </div>
         </section>
       </main>
       
       <style>{`
-        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
-        @keyframes pulse-slow {
-          0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(250,204,21,0.4); }
-          50% { transform: scale(1.03); box-shadow: 0 0 35px rgba(250,204,21,0.6); }
-        }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       `}</style>
     </div>
   );
