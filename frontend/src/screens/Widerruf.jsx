@@ -52,7 +52,7 @@ export default function Widerruf() {
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-2">
             <p className="font-black text-slate-900 uppercase">AfghanShop - Jawed REZAI</p>
             <p>Mozartstrasse 17/6, 5280 Braunau am Inn</p>
-            <p>E-Mail: afghanshop.braunau@gmail.com</p>
+            <p>E-Mail: info@afghanshop.at</p>
             <p>Telefon: +43 690 10088854</p>
           </div>
         </section>

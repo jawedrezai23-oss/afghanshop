@@ -356,7 +356,7 @@ export default function Home() {
                   <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-xl border border-white/40 shadow-sm" aria-hidden="true">📧</div>
                   <div>
                     <p className="text-[10px] font-bold uppercase text-slate-900 tracking-widest mb-1">E-Mail</p>
-                    <a href="mailto:infoafghanshop@aol.com" className="text-lg font-bold text-white hover:text-cyan-900 transition-colors">infoafghanshop@aol.com</a>
+                    <a href="mailto:info@afghanshop.at" className="text-lg font-bold text-white hover:text-cyan-900 transition-colors">info@afghanshop.at</a>
                   </div>
                 </div>
               </div>

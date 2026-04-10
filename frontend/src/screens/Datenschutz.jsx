@@ -39,7 +39,7 @@ export default function Datenschutz() {
             <p className="mt-2 font-bold">
               Mozartstrasse 17/6<br />
               5280 Braunau am Inn, Österreich<br />
-              E-Mail: afghanshop.braunau@gmail.com
+              E-Mail: info@afghanshop.at
             </p>
           </div>
         </section>

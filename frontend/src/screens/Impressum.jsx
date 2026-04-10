@@ -23,7 +23,7 @@ export default function Impressum() {
             <p className="font-black text-cyan-600 text-[10px] uppercase tracking-[0.2em] mb-2">Kontakt</p>
             <p className="font-bold text-slate-900 text-lg">
               Telefon: +43 690 10088854<br />
-              E-Mail: afghanshop.braunau@gmail.com
+              E-Mail: info@afghanshop.at
             </p>
           </div>
         </div>
