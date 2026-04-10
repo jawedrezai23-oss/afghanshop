@@ -168,8 +168,8 @@ export default function Navbar() {
                   Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
                 </Link>
                 
-                {/* GEFIXT: Link geht jetzt auf /profile, passend zur App.jsx */}
-                <Link to="/profile" className="block px-6 py-2.5 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
+                {/* GEFIXT: Link geht jetzt sauber auf /orderhistory */}
+                <Link to="/orderhistory" className="block px-6 py-2.5 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
                   Bestellungen
                 </Link>
 
