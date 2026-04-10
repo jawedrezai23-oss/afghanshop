@@ -146,7 +146,7 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* USER DROPDOWN (Jawed) */}
+          {/* USER DROPDOWN */}
           {userInfo ? (
             <div className="relative group flex items-center gap-2 md:gap-3 border-l pl-2 md:pl-4 border-slate-200">
               <button className="flex items-center gap-1 md:gap-2">
@@ -168,7 +168,7 @@ export default function Navbar() {
                   Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
                 </Link>
                 
-                {/* GEFIXT: Link geht jetzt sauber auf /orderhistory */}
+                {/* GEFIXT: Link geht jetzt zur Bestellübersicht /orderhistory */}
                 <Link to="/orderhistory" className="block px-6 py-2.5 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
                   Bestellungen
                 </Link>
