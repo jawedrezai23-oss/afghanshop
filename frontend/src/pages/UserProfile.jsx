@@ -30,6 +30,7 @@ export default function UserProfile() {
 
     const fetchProfileAndOrders = async () => {
       try {
+        // Parallel abrufen für maximale Geschwindigkeit
         const [profileRes, ordersRes] = await Promise.all([
           api.get('/users/profile'),
           api.get('/orders/mine')
@@ -43,7 +44,7 @@ export default function UserProfile() {
         setPostalCode(user.postalCode || '');
         setPhone(user.phone || '');
 
-        // Sicherheitscheck: Falls ordersRes.data kein Array ist
+        // Sicherheitscheck: Verhindert Abstürze falls orders kein Array ist
         setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);
         setLoading(false);
       } catch (err) {
@@ -70,7 +71,7 @@ export default function UserProfile() {
       link.setAttribute('download', `Rechnung_RE-${invoiceNumber || orderId}.pdf`);
       document.body.appendChild(link);
       link.click();
-      window.URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(url); // Speicher wieder freigeben
     } catch (err) {
       alert("Fehler beim Herunterladen der Rechnung.");
     }
@@ -116,6 +117,7 @@ export default function UserProfile() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 font-sans">
+      {/* HEADER BEREICH MIT AVATAR */}
       <div className="bg-white border-b border-slate-200 mb-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center gap-8">
           <div className="w-24 h-24 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-slate-200 border-4 border-cyan-500">
@@ -132,6 +134,7 @@ export default function UserProfile() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* LINKER BEREICH: FORMULAR */}
         <div className="lg:col-span-1">
           <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
             <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-6">Meine Daten</h2>
@@ -184,6 +187,7 @@ export default function UserProfile() {
                 </div>
               </div>
 
+              {/* ADRESS BEREICH */}
               <div className="pt-4 mt-4 border-t border-slate-50">
                 <p className="text-[10px] font-black uppercase text-cyan-600 mb-4 tracking-widest">Lieferadresse</p>
                 <div className="space-y-3">
@@ -231,6 +235,7 @@ export default function UserProfile() {
           </div>
         </div>
 
+        {/* RECHTER BEREICH: BESTELLHISTORIE */}
         <div className="lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Bestellhistorie</h2>
@@ -275,11 +280,13 @@ export default function UserProfile() {
                         <button 
                             onClick={() => downloadInvoice(order._id, order.invoiceNumber)}
                             className="bg-slate-100 text-slate-900 px-4 py-3 rounded-xl font-black text-[8px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                            title="Rechnung PDF"
                         >
                             📄 PDF
                         </button>
                         <button 
-                            onClick={() => navigate(`/order/${order._id}`)}
+                            /* WICHTIG: Navigiert zu /order/ID passend zur App.jsx */
+                            onClick={() => navigate(`/order/${order._id}`)} 
                             className="bg-slate-900 text-white px-5 py-3 rounded-xl font-black text-[8px] uppercase tracking-widest hover:bg-cyan-500 transition-all"
                         >
                             Details
