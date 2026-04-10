@@ -11,7 +11,31 @@ export default function Order() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
 
   // User Info aus LocalStorage holen
-  const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+  const userInfo = localStorage.getItem('userInfo') 
+    ? JSON.parse(localStorage.getItem('userInfo')) 
+    : null;
+
+  useEffect(() => {
+    // 1. Check ob User eingeloggt ist
+    if (!userInfo) {
+      navigate('/login');
+      return;
+    }
+
+    // 2. Daten laden
+    const fetchOrder = async () => {
+      try {
+        const { data } = await api.get(`/orders/${orderId}`);
+        setOrder(data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Fehler beim Laden der Bestellung:", err);
+        setLoading(false);
+      }
+    };
+
+    fetchOrder();
+  }, [orderId, navigate]);
 
   // FUNKTION: Rechnung vom Backend laden
   const downloadInvoice = async () => {
@@ -24,11 +48,12 @@ export default function Order() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      const reNr = `Rechnung_RE-${order.invoiceNumber || orderId.slice(-6).toUpperCase()}.pdf`;
+      const reNr = `Rechnung_RE-${order?.invoiceNumber || orderId.slice(-6).toUpperCase()}.pdf`;
       link.setAttribute('download', reNr);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
       setInvoiceLoading(false);
     } catch (err) {
       console.error("Fehler beim Laden der Rechnung:", err);
@@ -50,21 +75,17 @@ export default function Order() {
     }
   };
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const { data } = await api.get(`/orders/${orderId}`);
-        setOrder(data);
-        setLoading(false);
-      } catch (err) {
-        setLoading(false);
-      }
-    };
-    fetchOrder();
-  }, [orderId]);
+  if (loading) return (
+    <div className="p-20 text-center font-bold text-slate-400 text-2xl animate-pulse uppercase">
+      Lade Bestellung...
+    </div>
+  );
 
-  if (loading) return <div className="p-20 text-center font-bold text-slate-400 text-2xl animate-pulse uppercase">Lade Bestellung...</div>;
-  if (!order) return <div className="p-20 text-center text-red-500 font-bold">FEHLER: BESTELLUNG NICHT GEFUNDEN</div>;
+  if (!order) return (
+    <div className="p-20 text-center text-red-500 font-bold uppercase tracking-widest">
+      ❌ Fehler: Bestellung nicht gefunden
+    </div>
+  );
 
   // PFAND-BERECHNUNG
   const depositValue = order.totalDeposit > 0 
@@ -77,6 +98,8 @@ export default function Order() {
     <div className="bg-slate-50 min-h-screen py-12 px-4 font-sans text-slate-900">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white shadow-2xl rounded-[3.5rem] p-8 md:p-12 border border-slate-100 relative overflow-hidden">
+          
+          {/* HEADER MIT STATUS */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
               <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-900">Bestellübersicht</h1>
@@ -92,7 +115,7 @@ export default function Order() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 w-full md:w-auto">
               <button
                 onClick={downloadInvoice}
                 disabled={invoiceLoading}
@@ -101,7 +124,7 @@ export default function Order() {
                 {invoiceLoading ? 'LADE PDF...' : '📄 RECHNUNG LADEN'}
               </button>
 
-              {userInfo && userInfo.isAdmin && !order.isDelivered && (
+              {userInfo?.isAdmin && !order.isDelivered && (
                 <button
                   onClick={deliverHandler}
                   disabled={deliverLoading}
@@ -113,7 +136,7 @@ export default function Order() {
             </div>
           </div>
 
-          {/* ZAHLUNGS-INFO BLOCK FÜR ÜBERWEISUNG */}
+          {/* ZAHLUNGS-INFO BLOCK */}
           {(order.paymentMethod === 'Überweisung' || order.paymentMethod === 'Sofortüberweisung') && !order.isPaid && (
             <div className="bg-slate-900 border-2 border-cyan-500/30 p-8 rounded-[3rem] mb-12 flex flex-col items-center text-center text-white shadow-2xl">
               <div className="bg-cyan-500 text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">Zahlungsinformationen</div>
@@ -123,13 +146,12 @@ export default function Order() {
                 {refCode}
               </p>
 
-              {/* Dynamischer QR Code vom Backend */}
               {order.qrCode ? (
                 <div className="bg-white p-4 rounded-[2.5rem] shadow-xl mb-6">
                   <img src={order.qrCode} alt="Zahlungs QR" className="w-48 h-48" />
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 mb-6">QR-Code wird generiert...</p>
+                <p className="text-xs text-slate-400 mb-6 italic">QR-Code wird generiert...</p>
               )}
 
               <div className="space-y-1">
@@ -140,6 +162,7 @@ export default function Order() {
             </div>
           )}
 
+          {/* ARTIKELLISTE */}
           <div className="border-t border-slate-100 pt-10">
             <h3 className="font-black uppercase tracking-widest text-[10px] text-slate-400 mb-6">Bestellte Artikel</h3>
             {order.orderItems.map((item, index) => (
@@ -152,6 +175,7 @@ export default function Order() {
               </div>
             ))}
             
+            {/* SUMMEN-BERECHNUNG */}
             <div className="mt-12 flex flex-col items-end border-t-2 border-slate-50 pt-8 space-y-1">
               <div className="flex justify-between w-full max-w-[200px] text-slate-500 font-bold text-xs uppercase">
                 <span>Zwischensumme:</span>
@@ -160,7 +184,7 @@ export default function Order() {
 
               {depositValue > 0 && (
                 <div className="flex justify-between w-full max-w-[200px] text-orange-600 font-bold text-xs uppercase">
-                  <span>zzgl. Getränkepfand:</span>
+                  <span>zzgl. Pfand:</span>
                   <span>{depositValue.toFixed(2)} €</span>
                 </div>
               )}
