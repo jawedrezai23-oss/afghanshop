@@ -7,20 +7,20 @@ export default function UserProfile() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Zustände für Profil-Daten
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState(''); // NEU: Passwort-Feld
-  const [confirmPassword, setConfirmPassword] = useState(''); // NEU: Bestätigung
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [phone, setPhone] = useState('');
   
   const [updateLoading, setUpdateLoading] = useState(false);
-  const [message, setMessage] = useState(null); // Für Erfolgs/Fehlermeldungen
+  const [message, setMessage] = useState(null);
 
-  const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+  const userInfoStr = localStorage.getItem('userInfo');
+  const userInfo = userInfoStr ? JSON.parse(userInfoStr) : null;
 
   useEffect(() => {
     if (!userInfo) {
@@ -30,7 +30,13 @@ export default function UserProfile() {
 
     const fetchProfileAndOrders = async () => {
       try {
-        const { data: user } = await api.get('/users/profile');
+        // Parallel abrufen für bessere Performance
+        const [profileRes, ordersRes] = await Promise.all([
+          api.get('/users/profile'),
+          api.get('/orders/mine')
+        ]);
+
+        const user = profileRes.data;
         setName(user.name);
         setEmail(user.email);
         setAddress(user.address || '');
@@ -38,20 +44,23 @@ export default function UserProfile() {
         setPostalCode(user.postalCode || '');
         setPhone(user.phone || '');
 
-        const { data: myOrders } = await api.get('/orders/mine'); 
-        setOrders(myOrders);
-        
+        setOrders(ordersRes.data);
         setLoading(false);
       } catch (err) {
-        console.error("Fehler beim Laden der Daten", err);
+        console.error("Fehler beim Laden der Profildaten oder Bestellungen:", err);
+        // Falls der Token abgelaufen ist
+        if (err.response?.status === 401) {
+          localStorage.removeItem('userInfo');
+          navigate('/login');
+        }
         setLoading(false);
       }
     };
 
     fetchProfileAndOrders();
-  }, [navigate]);
+    // userInfo als Abhängigkeit hinzugefügt
+  }, [navigate, userInfoStr]); 
 
-  // FUNKTION FÜR DIREKTEN RECHNUNGS-DOWNLOAD
   const downloadInvoice = async (orderId, invoiceNumber) => {
     try {
       const { data } = await api.get(`/orders/${orderId}/invoice`, {
@@ -60,9 +69,10 @@ export default function UserProfile() {
       const url = window.URL.createObjectURL(new Blob([data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Rechnung_RE-${invoiceNumber}.pdf`);
+      link.setAttribute('download', `Rechnung_RE-${invoiceNumber || orderId}.pdf`);
       document.body.appendChild(link);
       link.click();
+      window.URL.revokeObjectURL(url); // Speicher freigeben
     } catch (err) {
       alert("Fehler beim Herunterladen der Rechnung.");
     }
@@ -82,7 +92,7 @@ export default function UserProfile() {
       const { data } = await api.put('/users/profile', {
         name,
         email,
-        password, // Wird nur im Backend geändert, wenn nicht leer
+        password,
         address,
         city,
         postalCode,
@@ -91,7 +101,7 @@ export default function UserProfile() {
       
       localStorage.setItem('userInfo', JSON.stringify(data));
       setMessage({ type: 'success', text: 'Profil erfolgreich aktualisiert! ✅' });
-      setPassword(''); // Passwortfelder leeren
+      setPassword('');
       setConfirmPassword('');
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || "Fehler beim Update" });
@@ -108,11 +118,10 @@ export default function UserProfile() {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20 font-sans">
-      {/* Profil Header */}
       <div className="bg-white border-b border-slate-200 mb-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center gap-8">
           <div className="w-24 h-24 bg-slate-900 rounded-[2.5rem] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-slate-200 border-4 border-cyan-500">
-            {name.charAt(0).toUpperCase()}
+            {name ? name.charAt(0).toUpperCase() : 'U'}
           </div>
           <div>
             <p className="text-cyan-500 font-black uppercase text-xs tracking-[0.3em] mb-1">Kundenkonto</p>
@@ -125,8 +134,6 @@ export default function UserProfile() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* LINKER BEREICH: PROFIL BEARBEITEN */}
         <div className="lg:col-span-1">
           <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
             <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-6">Meine Daten</h2>
@@ -157,13 +164,12 @@ export default function UserProfile() {
                 />
               </div>
 
-              {/* NEU: PASSWORT ÄNDERN */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                     <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Neues Passwort</label>
                     <input 
                     type="password" 
-                    placeholder="Leer lassen für kein Update"
+                    placeholder="Optional"
                     value={password} 
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm font-bold"
@@ -181,7 +187,7 @@ export default function UserProfile() {
               </div>
 
               <div className="pt-4 mt-4 border-t border-slate-50">
-                <p className="text-[10px] font-black uppercase text-cyan-600 mb-4 tracking-widest">Standard-Lieferadresse</p>
+                <p className="text-[10px] font-black uppercase text-cyan-600 mb-4 tracking-widest">Lieferadresse</p>
                 <div className="space-y-3">
                   <input 
                     type="text" 
@@ -219,7 +225,7 @@ export default function UserProfile() {
               <button 
                 type="submit" 
                 disabled={updateLoading}
-                className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-cyan-500 transition-all shadow-xl active:scale-95 disabled:opacity-50"
+                className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-cyan-500 transition-all shadow-xl disabled:opacity-50"
               >
                 {updateLoading ? 'Speichert...' : 'Profil aktualisieren'}
               </button>
@@ -227,7 +233,6 @@ export default function UserProfile() {
           </div>
         </div>
 
-        {/* RECHTER BEREICH: BESTELLUNGEN */}
         <div className="lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Bestellhistorie</h2>
@@ -265,15 +270,13 @@ export default function UserProfile() {
                   <div className="flex items-center gap-4 w-full md:w-auto justify-between border-t md:border-t-0 pt-4 md:pt-0">
                     <div className="text-right mr-4">
                       <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Gesamt</span>
-                      <span className="font-black text-slate-900 text-xl tracking-tighter">{order.totalPrice.toFixed(2)} €</span>
+                      <span className="font-black text-slate-900 text-xl tracking-tighter">{(order.totalPrice || 0).toFixed(2)} €</span>
                     </div>
                     
-                    {/* BUTTONS: RECHNUNG & DETAILS */}
                     <div className="flex gap-2">
                         <button 
                             onClick={() => downloadInvoice(order._id, order.invoiceNumber)}
                             className="bg-slate-100 text-slate-900 px-4 py-3 rounded-xl font-black text-[8px] uppercase tracking-widest hover:bg-slate-200 transition-all"
-                            title="Rechnung PDF"
                         >
                             📄 PDF
                         </button>
