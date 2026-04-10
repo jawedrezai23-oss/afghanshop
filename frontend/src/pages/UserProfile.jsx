@@ -30,7 +30,6 @@ export default function UserProfile() {
 
     const fetchProfileAndOrders = async () => {
       try {
-        // Parallel abrufen für bessere Performance
         const [profileRes, ordersRes] = await Promise.all([
           api.get('/users/profile'),
           api.get('/orders/mine')
@@ -44,11 +43,11 @@ export default function UserProfile() {
         setPostalCode(user.postalCode || '');
         setPhone(user.phone || '');
 
-        setOrders(ordersRes.data);
+        // Sicherheitscheck: Falls ordersRes.data kein Array ist
+        setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : []);
         setLoading(false);
       } catch (err) {
-        console.error("Fehler beim Laden der Profildaten oder Bestellungen:", err);
-        // Falls der Token abgelaufen ist
+        console.error("Fehler beim Laden:", err);
         if (err.response?.status === 401) {
           localStorage.removeItem('userInfo');
           navigate('/login');
@@ -58,7 +57,6 @@ export default function UserProfile() {
     };
 
     fetchProfileAndOrders();
-    // userInfo als Abhängigkeit hinzugefügt
   }, [navigate, userInfoStr]); 
 
   const downloadInvoice = async (orderId, invoiceNumber) => {
@@ -72,7 +70,7 @@ export default function UserProfile() {
       link.setAttribute('download', `Rechnung_RE-${invoiceNumber || orderId}.pdf`);
       document.body.appendChild(link);
       link.click();
-      window.URL.revokeObjectURL(url); // Speicher freigeben
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       alert("Fehler beim Herunterladen der Rechnung.");
     }
