@@ -136,7 +136,7 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* USER / LOGIN MIT ERWEITERTEM ADMIN DROPDOWN */}
+          {/* USER / LOGIN DROPDOWN */}
           {userInfo ? (
             <div className="relative group flex items-center gap-2 md:gap-3 border-l pl-2 md:pl-4 border-slate-200">
               <button className="flex items-center gap-1 md:gap-2">
@@ -151,21 +151,33 @@ export default function Navbar() {
                 )}
               </button>
               
-              <div className="absolute right-0 mt-2 top-full w-56 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 top-full w-56 bg-white rounded-2xl shadow-2xl border border-slate-100 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                
+                {/* ADMIN SEKTION (nur sichtbar wenn Admin) */}
                 {userInfo.isAdmin && (
-                  <div className="bg-slate-50 mb-2 border-b border-slate-100">
-                    <p className="px-6 pt-3 pb-1 text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Verwaltung</p>
-                    <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700 italic">Dashboard</Link>
-                    <Link to="/admin/products" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-cyan-600">Produkte verwalten</Link>
-                    <Link to="/admin/orders" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700 mb-2">Bestellungen</Link>
+                  <div className="border-b border-slate-100 mb-2 pb-2">
+                    <p className="px-6 pt-2 pb-1 text-[9px] font-black text-cyan-600 uppercase tracking-widest">Admin Panel</p>
+                    <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-slate-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">Dashboard</Link>
+                    <Link to="/admin/products" className="block px-6 py-2 hover:bg-slate-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">Produkte</Link>
+                    <Link to="/admin/orders" className="block px-6 py-2 hover:bg-slate-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">Bestellungen</Link>
+                    <Link to="/admin/users" className="block px-6 py-2 hover:bg-slate-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">Benutzer</Link>
                   </div>
                 )}
-                <Link to="/profile" className="flex items-center justify-between px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
-                  Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
-                </Link>
-                <button onClick={logoutHandler} className="w-full text-left px-6 py-2 hover:bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-wider">
-                  Abmelden
-                </button>
+
+                {/* USER SEKTION */}
+                <div>
+                  <p className="px-6 pt-2 pb-1 text-[9px] font-black text-slate-400 uppercase tracking-widest">Konto</p>
+                  <Link to="/profile" className="flex items-center justify-between px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
+                    Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
+                  </Link>
+                  <Link to="/orderhistory" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">Meine Bestellungen</Link>
+                  
+                  <hr className="my-2 border-slate-50" />
+                  
+                  <button onClick={logoutHandler} className="w-full text-left px-6 py-2 hover:bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-wider">
+                    Abmelden
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
