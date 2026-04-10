@@ -100,26 +100,18 @@ export default function Navbar() {
         {/* NAVIGATION ICONS & USER */}
         <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
           
-          {/* 1. ADMIN DROPDOWN (NUR ADMIN) */}
+          {/* DIREKTER ADMIN LINK (Quick Access) */}
           {userInfo && userInfo.isAdmin && (
-            <div className="relative group hidden sm:block">
-              <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-cyan-600 transition-all shadow-lg">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-widest">Admin Panel</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              <div className="absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <Link to="/admin/dashboard" className="block px-5 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase text-slate-700">Dashboard</Link>
-                <Link to="/admin/products" className="block px-5 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase text-cyan-600">Produkte</Link>
-                <Link to="/admin/orders" className="block px-5 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase text-slate-700">Bestellungen</Link>
-              </div>
-            </div>
+            <Link 
+              to="/admin/dashboard" 
+              className="hidden sm:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-cyan-600 transition-all shadow-lg group"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Admin Panel</span>
+            </Link>
           )}
 
           {/* MOBILE SUCHE TRIGGER */}
@@ -144,27 +136,40 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* 2. USER DROPDOWN (NUR KONTO) */}
+          {/* USER / LOGIN MIT ERWEITERTEM ADMIN DROPDOWN */}
           {userInfo ? (
             <div className="relative group flex items-center gap-2 md:gap-3 border-l pl-2 md:pl-4 border-slate-200">
               <button className="flex items-center gap-1 md:gap-2">
-                <span className="text-slate-900 font-black text-xs md:text-sm uppercase tracking-wider">
+                <span className="text-slate-900 font-black text-xs md:text-sm">
                   {userInfo.name.split(' ')[0]}
                 </span>
                 {hasUnpaidOrders && (
-                  <span className="bg-red-600 w-2 h-2 rounded-full animate-pulse"></span>
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                  </span>
                 )}
               </button>
               
-              <div className="absolute right-0 mt-2 top-full w-44 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                <Link to="/profile" className="block px-5 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase text-slate-700">Profil</Link>
-                <button onClick={logoutHandler} className="w-full text-left px-5 py-2 hover:bg-red-50 text-red-600 font-bold text-[10px] uppercase border-t border-slate-50 mt-1">
+              <div className="absolute right-0 mt-2 top-full w-56 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                {userInfo.isAdmin && (
+                  <div className="bg-slate-50 mb-2 border-b border-slate-100">
+                    <p className="px-6 pt-3 pb-1 text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Verwaltung</p>
+                    <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700 italic">Dashboard</Link>
+                    <Link to="/admin/products" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-cyan-600">Produkte verwalten</Link>
+                    <Link to="/admin/orders" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700 mb-2">Bestellungen</Link>
+                  </div>
+                )}
+                <Link to="/profile" className="flex items-center justify-between px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
+                  Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
+                </Link>
+                <button onClick={logoutHandler} className="w-full text-left px-6 py-2 hover:bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-wider">
                   Abmelden
                 </button>
               </div>
             </div>
           ) : (
-            <Link to="/login" className="bg-cyan-600 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-slate-900 transition-colors">
+            <Link to="/login" className="bg-cyan-600 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest">
               Login
             </Link>
           )}
