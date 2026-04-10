@@ -114,7 +114,6 @@ export default function Navbar() {
                 </svg>
               </button>
 
-              {/* Admin Dropdown Content */}
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                 <p className="px-4 py-2 text-[8px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">Verwaltung</p>
                 <Link to="/admin/dashboard" className="block px-4 py-2.5 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">Dashboard</Link>
@@ -169,7 +168,8 @@ export default function Navbar() {
                   Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
                 </Link>
                 
-                <Link to="/orderhistory" className="block px-6 py-2.5 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
+                {/* GEFIXT: Link geht jetzt auf /profile, passend zur App.jsx */}
+                <Link to="/profile" className="block px-6 py-2.5 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
                   Bestellungen
                 </Link>
 
