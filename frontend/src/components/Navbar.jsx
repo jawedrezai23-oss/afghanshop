@@ -100,20 +100,6 @@ export default function Navbar() {
         {/* NAVIGATION ICONS & USER */}
         <div className="flex items-center gap-2 md:gap-4 lg:gap-6">
           
-          {/* DIREKTER ADMIN LINK (Quick Access) */}
-          {userInfo && userInfo.isAdmin && (
-            <Link 
-              to="/admin/dashboard" 
-              className="hidden sm:flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-cyan-600 transition-all shadow-lg group"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-widest">Admin Panel</span>
-            </Link>
-          )}
-
           {/* MOBILE SUCHE TRIGGER */}
           <button 
             onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
@@ -136,40 +122,45 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* USER / LOGIN MIT ERWEITERTEM ADMIN DROPDOWN */}
+          {/* USER & ADMIN PANEL KOMBINIERT */}
           {userInfo ? (
-            <div className="relative group flex items-center gap-2 md:gap-3 border-l pl-2 md:pl-4 border-slate-200">
-              <button className="flex items-center gap-1 md:gap-2">
-                <span className="text-slate-900 font-black text-xs md:text-sm">
-                  {userInfo.name.split(' ')[0]}
-                </span>
-                {hasUnpaidOrders && (
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+            <div className="relative group border-l pl-2 md:pl-4 border-slate-200">
+              <button className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all shadow-sm ${userInfo.isAdmin ? 'bg-slate-900 text-white hover:bg-cyan-600' : 'bg-slate-50 text-slate-900'}`}>
+                {userInfo.isAdmin && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
                   </span>
                 )}
+                <span className="font-black text-[10px] md:text-xs uppercase tracking-widest">
+                  {userInfo.isAdmin ? 'Admin Panel' : userInfo.name.split(' ')[0]}
+                </span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
               
+              {/* EIN GEMEINSAMES DROPDOWN */}
               <div className="absolute right-0 mt-2 top-full w-56 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 py-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
                 {userInfo.isAdmin && (
                   <div className="bg-slate-50 mb-2 border-b border-slate-100">
                     <p className="px-6 pt-3 pb-1 text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Verwaltung</p>
-                    <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700 italic">Dashboard</Link>
+                    <Link to="/admin/dashboard" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">Dashboard</Link>
                     <Link to="/admin/products" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-cyan-600">Produkte verwalten</Link>
                     <Link to="/admin/orders" className="block px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700 mb-2">Bestellungen</Link>
                   </div>
                 )}
+                <p className="px-6 pt-2 pb-1 text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Konto</p>
                 <Link to="/profile" className="flex items-center justify-between px-6 py-2 hover:bg-cyan-50 font-bold text-[10px] uppercase tracking-wider text-slate-700">
                   Mein Profil {hasUnpaidOrders && <span className="bg-red-600 w-1.5 h-1.5 rounded-full"></span>}
                 </Link>
-                <button onClick={logoutHandler} className="w-full text-left px-6 py-2 hover:bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-wider">
+                <button onClick={logoutHandler} className="w-full text-left px-6 py-2 hover:bg-red-50 text-red-600 font-bold text-[10px] uppercase tracking-wider border-t border-slate-50 mt-2">
                   Abmelden
                 </button>
               </div>
             </div>
           ) : (
-            <Link to="/login" className="bg-cyan-600 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest">
+            <Link to="/login" className="bg-cyan-600 text-white px-4 py-2 md:px-6 md:py-2.5 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-slate-900 transition-colors">
               Login
             </Link>
           )}
