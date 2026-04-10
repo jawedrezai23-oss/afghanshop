@@ -6,7 +6,6 @@ export default function Checkout() {
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   
-  // States für Abholung & Adressdaten
   const [isAnonymousOrder, setIsAnonymousOrder] = useState(false);
   const [shippingAddress, setShippingAddress] = useState({
     fullName: '',
@@ -16,7 +15,6 @@ export default function Checkout() {
     phone: '',
   });
 
-  // Lade Warenkorb beim Start
   useEffect(() => {
     const items = JSON.parse(localStorage.getItem('cartItems')) || [];
     setCartItems(items);
@@ -25,21 +23,17 @@ export default function Checkout() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Berechnungen für Preis
       const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
       
-      // --- VERSANDKOSTEN ANPASSUNG (60€) ---
-      // Wenn Abholung (isAnonymousOrder), dann 0€. 
-      // Sonst 60€, außer der Warenkorbwert ist sehr hoch (hier z.B. 150€).
-      const shippingLimit = 150; 
-      const standardShipping = 60;
+      // --- KORRIGIERTE VERSAND-LOGIK ---
+      const shippingLimit = 60; // Gratis ab 60€
+      const standardShipping = 4.99; // Sonst 4,99€
       
       const shippingPrice = isAnonymousOrder ? 0 : (itemsPrice >= shippingLimit ? 0 : standardShipping);
       const totalPrice = itemsPrice + shippingPrice;
 
       const orderData = {
         orderItems: cartItems,
-        // DATEN FÜR BACKEND ANPASSEN WENN ABHOLUNG
         shippingAddress: isAnonymousOrder ? { 
             fullName: 'Barzahlung', 
             address: 'Abholung im Shop',
@@ -55,14 +49,11 @@ export default function Checkout() {
         isAnonymousOrder: isAnonymousOrder, 
       };
 
-      // Bestellung an Backend senden
       const { data } = await api.post('/orders', orderData);
       
-      // Warenkorb leeren
       localStorage.removeItem('cartItems');
       window.dispatchEvent(new Event("cart-updated"));
       
-      // Zur Bestellübersicht navigieren
       navigate(`/order/${data._id}`);
     } catch (error) {
       console.error(error);
@@ -70,66 +61,66 @@ export default function Checkout() {
     }
   };
 
-  // Hilfsvariablen für die Anzeige
+  // Anzeige-Logik korrigiert
   const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const currentShipping = isAnonymousOrder ? 0 : (itemsPrice >= 150 ? 0 : 60);
+  const currentShipping = isAnonymousOrder ? 0 : (itemsPrice >= 60 ? 0 : 4.99);
 
   return (
-    <div className="bg-slate-50 min-h-screen py-12 px-4">
-      <div className="max-w-2xl mx-auto bg-white p-10 rounded-[2rem] shadow-xl">
-        <h1 className="text-3xl font-black mb-8 uppercase tracking-tighter text-slate-900">Kasse</h1>
+    <div className="bg-slate-50 min-h-screen py-8 md:py-16 px-4 selection:bg-cyan-100">
+      <div className="max-w-xl mx-auto bg-white p-6 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border border-slate-100">
         
-        {/* Zusammenfassung vorab */}
-        <div className="mb-8 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-            <div className="flex justify-between mb-2">
-                <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Zwischensumme:</span>
+        <header className="mb-10 text-center">
+          <p className="text-[10px] font-black uppercase text-cyan-600 tracking-[0.3em] mb-2 italic">Fast fertig</p>
+          <h1 className="text-4xl md:text-5xl font-black mb-2 uppercase tracking-tighter text-slate-900">Kasse</h1>
+        </header>
+        
+        {/* Zusammenfassung */}
+        <div className="mb-10 p-6 md:p-8 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-inner">
+            <div className="flex justify-between mb-3">
+                <span className="text-slate-400 font-bold uppercase text-[9px] tracking-widest">Warenwert</span>
                 <span className="font-black text-slate-800">{itemsPrice.toFixed(2)} €</span>
             </div>
             <div className="flex justify-between mb-4 pb-4 border-b border-slate-200">
-                <span className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">Versand:</span>
-                <span className={`font-black ${currentShipping === 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {currentShipping === 0 ? 'GRATIS' : `${currentShipping.toFixed(2)} €`}
+                <span className="text-slate-400 font-bold uppercase text-[9px] tracking-widest">Versandkosten</span>
+                <span className={`font-black uppercase text-[10px] ${currentShipping === 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {currentShipping === 0 ? 'Kostenlose Lieferung' : `+ ${currentShipping.toFixed(2)} €`}
                 </span>
             </div>
             <div className="flex justify-between items-center">
-                <span className="text-slate-900 font-black uppercase text-xs tracking-widest">Gesamtsumme:</span>
-                <span className="text-2xl font-black text-cyan-600">{(itemsPrice + currentShipping).toFixed(2)} €</span>
+                <span className="text-slate-900 font-black uppercase text-[10px] tracking-widest">Gesamtbetrag</span>
+                <span className="text-3xl font-black text-cyan-600 tracking-tighter">{(itemsPrice + currentShipping).toFixed(2)} <span className="text-sm">€</span></span>
             </div>
         </div>
 
-        {/* --- CHECKBOX FÜR ABHOLUNG --- */}
-        <div className={`mb-8 border-2 transition-all p-6 rounded-[1.5rem] ${isAnonymousOrder ? 'bg-cyan-50 border-cyan-200 shadow-md' : 'bg-white border-slate-100'}`}>
-          <label className="flex items-center space-x-4 cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={isAnonymousOrder}
-              onChange={(e) => setIsAnonymousOrder(e.target.checked)}
-              className="w-6 h-6 text-cyan-600 rounded focus:ring-cyan-500"
-            />
-            <div className="flex flex-col">
-                <span className="font-black text-lg text-slate-900 uppercase tracking-tight">
-                Selbstabholung in Braunau
-                </span>
-                <span className='text-xs font-bold text-cyan-600 uppercase tracking-widest'>Keine Versandkosten | Barzahlung</span>
-            </div>
-          </label>
+        {/* ABHOLUNG OPTION */}
+        <div 
+          onClick={() => setIsAnonymousOrder(!isAnonymousOrder)}
+          className={`mb-8 border-2 transition-all p-5 rounded-[1.5rem] cursor-pointer flex items-center gap-4 ${isAnonymousOrder ? 'bg-cyan-50 border-cyan-500 shadow-lg shadow-cyan-50' : 'bg-white border-slate-100 hover:border-slate-200'}`}
+        >
+          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isAnonymousOrder ? 'bg-cyan-600 border-cyan-600' : 'bg-white border-slate-300'}`}>
+            {isAnonymousOrder && <div className="w-2 h-2 bg-white rounded-full"></div>}
+          </div>
+          <div className="flex flex-col">
+              <span className="font-black text-slate-900 uppercase tracking-tighter text-sm md:text-base">Selbstabholung</span>
+              <span className='text-[10px] font-bold text-cyan-600 uppercase tracking-widest'>Keine Versandkosten | Barzahlung</span>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className='space-y-6'>
+        <form onSubmit={handleSubmit} className='space-y-8'>
           {!isAnonymousOrder && (
-            <div className="space-y-4 animate-in fade-in duration-500">
-              <h3 className='font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 mb-2'>Lieferadresse</h3>
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+              <h3 className='font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 px-2'>Lieferadresse</h3>
               <input 
                 type="text" 
-                placeholder="Vor- und Nachname" 
-                className="w-full p-5 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-cyan-500 font-bold text-slate-700" 
+                placeholder="Vollständiger Name" 
+                className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:outline-none focus:border-cyan-500 focus:bg-white transition-all font-bold text-slate-800 placeholder:text-slate-300" 
                 onChange={(e) => setShippingAddress({...shippingAddress, fullName: e.target.value})} 
                 required={!isAnonymousOrder} 
               />
               <input 
                 type="text" 
                 placeholder="Straße und Hausnummer" 
-                className="w-full p-5 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-cyan-500 font-bold text-slate-700" 
+                className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:outline-none focus:border-cyan-500 focus:bg-white transition-all font-bold text-slate-800 placeholder:text-slate-300" 
                 onChange={(e) => setShippingAddress({...shippingAddress, address: e.target.value})} 
                 required={!isAnonymousOrder} 
               />
@@ -137,14 +128,14 @@ export default function Checkout() {
                   <input 
                     type="text" 
                     placeholder="PLZ" 
-                    className="p-5 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-cyan-500 font-bold text-slate-700" 
+                    className="p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:outline-none focus:border-cyan-500 focus:bg-white transition-all font-bold text-slate-800 placeholder:text-slate-300" 
                     onChange={(e) => setShippingAddress({...shippingAddress, postalCode: e.target.value})} 
                     required={!isAnonymousOrder} 
                   />
                   <input 
                     type="text" 
                     placeholder="Stadt" 
-                    className="p-5 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-cyan-500 font-bold text-slate-700" 
+                    className="p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:outline-none focus:border-cyan-500 focus:bg-white transition-all font-bold text-slate-800 placeholder:text-slate-300" 
                     onChange={(e) => setShippingAddress({...shippingAddress, city: e.target.value})} 
                     required={!isAnonymousOrder} 
                   />
@@ -152,16 +143,18 @@ export default function Checkout() {
             </div>
           )}
 
-          <button 
-            type="submit" 
-            className={`w-full p-6 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] transition-all active:scale-95 shadow-xl ${
-                isAnonymousOrder 
-                ? "bg-cyan-500 text-white shadow-cyan-100 hover:bg-cyan-600" 
-                : "bg-slate-900 text-white shadow-slate-200 hover:bg-slate-800"
-            }`}
-          >
-            {isAnonymousOrder ? "Bestellung Bestätigen" : "Zahlungspflichtig bestellen"}
-          </button>
+          <div className="pt-4">
+            <button 
+              type="submit" 
+              className={`w-full p-6 rounded-[2rem] font-black uppercase text-xs tracking-widest transition-all active:scale-95 shadow-xl ${
+                  isAnonymousOrder 
+                  ? "bg-cyan-600 text-white shadow-cyan-100 hover:bg-slate-900" 
+                  : "bg-slate-900 text-white shadow-slate-200 hover:bg-cyan-600"
+              }`}
+            >
+              {isAnonymousOrder ? "Bestellung Bestätigen" : "Zahlungspflichtig bestellen"}
+            </button>
+          </div>
         </form>
       </div>
     </div>
