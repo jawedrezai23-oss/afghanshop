@@ -16,14 +16,29 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Email Transporter Konfiguration
+// --- NUR DIESER BEREICH WURDE FÜR NETCUP GEÄNDERT ---
 const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
+  host: process.env.MAIL_HOST || 'mx150e.netcup.net',
+  port: parseInt(process.env.MAIL_PORT) || 465,
+  secure: true, 
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.MAIL_USER || 'info@afghanshop.at',
+    pass: process.env.MAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
+
+// Test-Log für Render
+transporter.verify((error, success) => {
+  if (error) {
+    console.log("!!! Mail-Server Fehler:", error);
+  } else {
+    console.log("--- Mail-Server (Netcup) ist bereit ---");
+  }
+});
+// ---------------------------------------------------
 
 // --- HILFSFUNKTION FÜR EPC-QR-CODE ---
 const generatePaymentQRCode = async (order) => {
@@ -261,17 +276,17 @@ export const addOrder = async (req, res) => {
       
       // Email an Kunden
       const mailOptions = {
-        from: `"AfghanShop" <info@afghanshop.at>`,
+        from: `"AfghanShop" <${process.env.MAIL_USER || 'info@afghanshop.at'}>`,
         to: populatedOrder.user.email,
         subject: `Rechnung RE-${populatedOrder.invoiceNumber}`,
         text: `Vielen Dank für Ihre Bestellung! Bitte überweisen Sie den Betrag auf unser Konto: Jawed REZAI, IBAN: IE49SUMU99036512768145`,
         attachments: [{ filename: `RE-${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
       };
 
-      // Email an Admin (info@afghanshop.at)
+      // Email an Admin
       const adminMail = {
-        from: `"AfghanShop System" <info@afghanshop.at>`,
-        to: "info@afghanshop.at", // Korrigiert: Hier kommt jetzt alles an
+        from: `"AfghanShop System" <${process.env.MAIL_USER || 'info@afghanshop.at'}>`,
+        to: "info@afghanshop.at",
         subject: `NEUE BESTELLUNG - RE-${populatedOrder.invoiceNumber}`,
         html: `
           <h3>Neue Bestellung erhalten!</h3>
