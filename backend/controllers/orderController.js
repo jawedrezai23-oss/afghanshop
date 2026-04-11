@@ -16,6 +16,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Email Transporter Konfiguration
 const transporter = nodemailer.createTransport({
   service: process.env.EMAIL_SERVICE || 'gmail',
   auth: {
@@ -56,18 +57,19 @@ const drawInvoiceContent = async (doc, order) => {
   } catch (error) {
     console.error('Logo Fehler', error);
   }
+  
   doc.fillColor('#444444').fontSize(10)
     .font('Helvetica-Bold').text('AfghanShop - Afghanische Spezialitäten', 50, 50)
     .font('Helvetica').text('Jawed REZAI')
     .font('Helvetica').text('Mozartstrasse 17/6')
     .text('5280 Braunau am Inn')
-    .text('Email: infoafghanshop@aol.com')
+    .text('Email: info@afghanshop.at') // Korrigiert: Neue Email
     .moveDown();
 
   doc.moveDown(2);
   doc.fillColor('#0099b5').fontSize(22).font('Helvetica-Bold').text('RECHNUNG', 50, 150);
   doc.fillColor('#444444').fontSize(10).font('Helvetica')
-    .text(`Rechnungsnr: RE-${order.invoiceNumber}`, 50, 175) // Präfix RE- hinzugefügt
+    .text(`Rechnungsnr: RE-${order.invoiceNumber}`, 50, 175)
     .text(`Datum: ${new Date(order.createdAt).toLocaleDateString('de-DE')}`, 50, 190);
 
   const tableTop = 260;
@@ -209,7 +211,6 @@ export const addOrder = async (req, res) => {
     }
 
     const lastOrder = await Order.findOne().sort({ invoiceNumber: -1 });
-    // START BEI 1063
     const newInvoiceNumber = lastOrder && lastOrder.invoiceNumber >= 1063 ? lastOrder.invoiceNumber + 1 : 1063;
     
     const itemsPrice = orderItems.reduce((acc, item) => acc + item.price * item.qty, 0);
@@ -251,30 +252,44 @@ export const addOrder = async (req, res) => {
       }
     }
 
+    // PDF Generierung und E-Mail Versand
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     let buffers = [];
     doc.on('data', buffers.push.bind(buffers));
     doc.on('end', async () => {
       const pdfBuffer = Buffer.concat(buffers);
+      
+      // Email an Kunden
       const mailOptions = {
-        from: `"AfghanShop" <${process.env.EMAIL_USER}>`,
+        from: `"AfghanShop" <info@afghanshop.at>`,
         to: populatedOrder.user.email,
         subject: `Rechnung RE-${populatedOrder.invoiceNumber}`,
         text: `Vielen Dank für Ihre Bestellung! Bitte überweisen Sie den Betrag auf unser Konto: Jawed REZAI, IBAN: IE49SUMU99036512768145`,
-        // DATEINAME GEÄNDERT auf RE-XXXX.pdf
         attachments: [{ filename: `RE-${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
       };
+
+      // Email an Admin (info@afghanshop.at)
       const adminMail = {
-        from: `"AfghanShop System" <${process.env.EMAIL_USER}>`,
-        to: "infoafghanshop@aol.com, jawedrezai23@hotmail.com",
-        subject: `Neue Bestellung RE-${populatedOrder.invoiceNumber}`,
-        html: `<p>Neue Bestellung von ${populatedOrder.shippingAddress.fullName}.</p>`,
+        from: `"AfghanShop System" <info@afghanshop.at>`,
+        to: "info@afghanshop.at", // Korrigiert: Hier kommt jetzt alles an
+        subject: `NEUE BESTELLUNG - RE-${populatedOrder.invoiceNumber}`,
+        html: `
+          <h3>Neue Bestellung erhalten!</h3>
+          <p><strong>Kunde:</strong> ${populatedOrder.shippingAddress.fullName}</p>
+          <p><strong>Email:</strong> ${populatedOrder.user.email}</p>
+          <p><strong>Summe:</strong> ${Number(populatedOrder.totalPrice).toFixed(2)} EUR</p>
+          <p>Die Rechnung ist als PDF beigefügt.</p>
+        `,
         attachments: [{ filename: `RE-${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
       };
+
       try {
         await transporter.sendMail(mailOptions);
         await transporter.sendMail(adminMail);
-      } catch (e) { console.error("Mail Error", e); }
+        console.log(`Emails für Bestellung RE-${populatedOrder.invoiceNumber} erfolgreich versendet.`);
+      } catch (e) { 
+        console.error("Mail Error bei Bestellung:", e); 
+      }
     });
 
     await drawInvoiceContent(doc, populatedOrder);
@@ -319,7 +334,6 @@ export const generateInvoice = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Bestellung nicht gefunden' });
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     res.setHeader('Content-Type', 'application/pdf');
-    // DATEINAME AUCH HIER GEÄNDERT
     res.setHeader('Content-Disposition', `attachment; filename=RE-${order.invoiceNumber}.pdf`);
     doc.pipe(res);
     await drawInvoiceContent(doc, order);
@@ -422,7 +436,6 @@ export const updateOrderToPaidAdmin = async (req, res) => {
 export const getNextInvoiceNumber = async (req, res) => {
   try {
     const lastOrder = await Order.findOne().sort({ invoiceNumber: -1 });
-    // START BEI 1063
     const nextNumber = lastOrder && lastOrder.invoiceNumber >= 1063 ? lastOrder.invoiceNumber + 1 : 1063;
     res.json({ nextInvoiceNumber: nextNumber });
   } catch (error) { res.status(500).json({ message: error.message }); }
