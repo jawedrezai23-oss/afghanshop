@@ -16,29 +16,30 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- NUR DIESER BEREICH WURDE FÜR NETCUP GEÄNDERT ---
+// --- AKTUALISIERTER MAIL-BEREICH FÜR NETCUP (PORT 587) ---
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST || 'mx150e.netcup.net',
-  port: parseInt(process.env.MAIL_PORT) || 465,
-  secure: true, 
+  port: parseInt(process.env.MAIL_PORT) || 587,
+  // Wenn Port 465 genutzt wird, secure auf true. Bei Port 587 auf false.
+  secure: (process.env.MAIL_PORT === '465'), 
   auth: {
     user: process.env.MAIL_USER || 'info@afghanshop.at',
     pass: process.env.MAIL_PASS,
   },
   tls: {
+    // Verhindert Timeout/Zertifikatsfehler auf Cloud-Servern wie Render
     rejectUnauthorized: false
   }
 });
 
-// Test-Log für Render
+// Test-Log für Render Dashboard
 transporter.verify((error, success) => {
   if (error) {
-    console.log("!!! Mail-Server Fehler:", error);
+    console.log("!!! Mail-Server Verbindung fehlgeschlagen:", error);
   } else {
     console.log("--- Mail-Server (Netcup) ist bereit ---");
   }
 });
-// ---------------------------------------------------
 
 // --- HILFSFUNKTION FÜR EPC-QR-CODE ---
 const generatePaymentQRCode = async (order) => {
@@ -78,7 +79,7 @@ const drawInvoiceContent = async (doc, order) => {
     .font('Helvetica').text('Jawed REZAI')
     .font('Helvetica').text('Mozartstrasse 17/6')
     .text('5280 Braunau am Inn')
-    .text('Email: info@afghanshop.at') // Korrigiert: Neue Email
+    .text('Email: info@afghanshop.at')
     .moveDown();
 
   doc.moveDown(2);
@@ -207,7 +208,6 @@ const drawInvoiceContent = async (doc, order) => {
 export const addOrder = async (req, res) => {
   try {
     const { orderItems, shippingAddress } = req.body;
-
     const isBraunau = shippingAddress.postalCode === '5280' || 
                       shippingAddress.city.toLowerCase().includes('braunau');
 
@@ -216,7 +216,6 @@ export const addOrder = async (req, res) => {
       if (product) {
         const isFresh = product.category === 'Frischware' || product.isFresh;
         const isHeavy = product.weight >= 5000 || (product.name.toLowerCase().includes('reis') && product.weight >= 4000);
-
         if ((isFresh || isHeavy) && !isBraunau) {
           return res.status(400).json({ 
             message: `Das Produkt "${product.name}" kann leider nur innerhalb von Braunau am Inn geliefert werden.` 
@@ -229,7 +228,6 @@ export const addOrder = async (req, res) => {
     const newInvoiceNumber = lastOrder && lastOrder.invoiceNumber >= 1063 ? lastOrder.invoiceNumber + 1 : 1063;
     
     const itemsPrice = orderItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-
     let shippingPrice = req.body.shippingPrice;
     if (shippingPrice > 0) {
       shippingPrice = itemsPrice >= 60 ? 0 : 4.99;
@@ -274,7 +272,6 @@ export const addOrder = async (req, res) => {
     doc.on('end', async () => {
       const pdfBuffer = Buffer.concat(buffers);
       
-      // Email an Kunden
       const mailOptions = {
         from: `"AfghanShop" <${process.env.MAIL_USER || 'info@afghanshop.at'}>`,
         to: populatedOrder.user.email,
@@ -283,7 +280,6 @@ export const addOrder = async (req, res) => {
         attachments: [{ filename: `RE-${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
       };
 
-      // Email an Admin
       const adminMail = {
         from: `"AfghanShop System" <${process.env.MAIL_USER || 'info@afghanshop.at'}>`,
         to: "info@afghanshop.at",
@@ -293,7 +289,6 @@ export const addOrder = async (req, res) => {
           <p><strong>Kunde:</strong> ${populatedOrder.shippingAddress.fullName}</p>
           <p><strong>Email:</strong> ${populatedOrder.user.email}</p>
           <p><strong>Summe:</strong> ${Number(populatedOrder.totalPrice).toFixed(2)} EUR</p>
-          <p>Die Rechnung ist als PDF beigefügt.</p>
         `,
         attachments: [{ filename: `RE-${populatedOrder.invoiceNumber}.pdf`, content: pdfBuffer }]
       };
@@ -301,7 +296,6 @@ export const addOrder = async (req, res) => {
       try {
         await transporter.sendMail(mailOptions);
         await transporter.sendMail(adminMail);
-        console.log(`Emails für Bestellung RE-${populatedOrder.invoiceNumber} erfolgreich versendet.`);
       } catch (e) { 
         console.error("Mail Error bei Bestellung:", e); 
       }
@@ -310,7 +304,6 @@ export const addOrder = async (req, res) => {
     await drawInvoiceContent(doc, populatedOrder);
     res.status(201).json(createdOrder);
   } catch (error) {
-    console.error('ADD ORDER ERROR:', error);
     res.status(500).json({ message: error.message });
   }
 };
