@@ -39,15 +39,16 @@ transporter.verify((error, success) => {
   }
 });
 
-// --- HILFSFUNKTION FÜR EPC-QR-CODE ---
+// --- HILFSFUNKTION FÜR EPC-QR-CODE (KORRIGIERT FÜR VERWENDUNGSZWECK) ---
 const generatePaymentQRCode = async (order) => {
   const iban = "IE49SUMU99036512768145";
   const bic = "SUMUIE22XXX";
   const name = "Jawed REZAI";
   const amount = Number(order.totalPrice).toFixed(2);
-  const reference = `RE-${order.invoiceNumber}`;
+  const info = `RE-${order.invoiceNumber}`; // Dies wird nun als Verwendungszweck genutzt
 
-  const qrData = `BCD\n001\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\nNONE\n${reference}\nVielen Dank`;
+  // Der EPC-Standard nutzt Feld 10 für Referenz (leer lassen) und Feld 11 für Verwendungszweck
+  const qrData = `BCD\n001\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\nNONE\n\n${info}\nVielen Dank`;
 
   try {
     return await QRCode.toDataURL(qrData, {
@@ -423,7 +424,6 @@ export const confirmPayment = async (req, res) => {
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
-// --- NEU: HIER WIRD DIE LIEFER-MAIL GESENDET ---
 export const updateOrderToDelivered = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id).populate('user', 'name email');
