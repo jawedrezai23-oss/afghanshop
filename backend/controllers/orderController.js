@@ -16,27 +16,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- FINALE LÖSUNG FÜR NETCUP (PORT 25) ---
+// --- FINALE LÖSUNG ÜBER BREVO (SMTP-RELAY) ---
 const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST || 'mx150e.netcup.net',
-  port: 25, // Port 25 ist oft die letzte Rettung bei Timeouts
-  secure: false, // Muss false sein für Port 25/587
+  host: process.env.MAIL_HOST || 'smtp-relay.brevo.com',
+  port: parseInt(process.env.MAIL_PORT) || 587,
+  secure: false, // Wichtig: false für Port 587
   auth: {
-    user: process.env.MAIL_USER || 'info@afghanshop.at',
+    user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false, // Ignoriert Zertifikatsfehler zwischen Render/Netcup
-    ignoreTLS: false
   }
 });
 
 // Test-Log für Render Dashboard
 transporter.verify((error, success) => {
   if (error) {
-    console.log("!!! Mail-Server Verbindung fehlgeschlagen auf Port 25:", error);
+    console.log("!!! Mail-Server Verbindung fehlgeschlagen (Brevo):", error);
   } else {
-    console.log("--- Mail-Server (Netcup) ist JETZT bereit ---");
+    console.log("--- Brevo Mail-Service ist BEREIT ---");
   }
 });
 
@@ -272,7 +268,7 @@ export const addOrder = async (req, res) => {
       const pdfBuffer = Buffer.concat(buffers);
       
       const mailOptions = {
-        from: `"AfghanShop" <${process.env.MAIL_USER || 'info@afghanshop.at'}>`,
+        from: `"AfghanShop" <${process.env.MAIL_FROM || 'info@afghanshop.at'}>`,
         to: populatedOrder.user.email,
         subject: `Rechnung RE-${populatedOrder.invoiceNumber}`,
         text: `Vielen Dank für Ihre Bestellung! Bitte überweisen Sie den Betrag auf unser Konto: Jawed REZAI, IBAN: IE49SUMU99036512768145`,
@@ -280,8 +276,7 @@ export const addOrder = async (req, res) => {
       };
 
       const adminMail = {
-        from: `"AfghanShop System" <${process.env.MAIL_USER || 'info@afghanshop.at'}>`,
-        // Hier habe ich deine zweite Mailadresse direkt hinzugefügt
+        from: `"AfghanShop System" <${process.env.MAIL_FROM || 'info@afghanshop.at'}>`,
         to: ["info@afghanshop.at", "Jawedrezai23@hotmail.com"],
         subject: `NEUE BESTELLUNG - RE-${populatedOrder.invoiceNumber}`,
         html: `
@@ -308,7 +303,6 @@ export const addOrder = async (req, res) => {
   }
 };
 
-// ... Rest des Codes bleibt gleich ...
 export const deleteOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
