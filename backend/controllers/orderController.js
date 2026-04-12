@@ -20,11 +20,14 @@ const __dirname = path.dirname(__filename);
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST || 'smtp-relay.brevo.com',
   port: parseInt(process.env.MAIL_PORT) || 587,
-  secure: false, // Wichtig: false für Port 587
+  secure: false, 
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
-  }
+  },
+  connectionTimeout: 10000, // 10 Sekunden warten
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
 });
 
 // Test-Log für Render Dashboard
