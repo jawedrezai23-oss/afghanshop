@@ -61,43 +61,56 @@ const generatePaymentQRCode = async (order) => {
   }
 };
 
-// --- PDF GENERIERUNGS LOGIK ---
+// --- PDF GENERIERUNGS LOGIK (KORRIGIERT FÜR MEHRERE SEITEN) ---
 const drawInvoiceContent = async (doc, order) => {
-  try {
-    const logoPath = path.resolve(__dirname, '../public/images/logo.png');
-    if (fs.existsSync(logoPath)) {
-      doc.image(logoPath, 450, 45, { width: 100 });
+  const pageBottom = doc.page.height - 120;
+
+  const drawHeader = (isFirstPage = false) => {
+    try {
+      const logoPath = path.resolve(__dirname, '../public/images/logo.png');
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 450, 45, { width: 100 });
+      }
+    } catch (error) { console.error('Logo Fehler', error); }
+
+    doc.fillColor('#444444').fontSize(10)
+      .font('Helvetica-Bold').text('AfghanShop - Afghanische Spezialitäten', 50, 50)
+      .font('Helvetica').text('Jawed REZAI')
+      .font('Helvetica').text('Mozartstrasse 17/6')
+      .text('5280 Braunau am Inn')
+      .text('Email: info@afghanshop.at');
+
+    if (isFirstPage) {
+      doc.moveDown(2);
+      doc.fillColor('#0099b5').fontSize(22).font('Helvetica-Bold').text('RECHNUNG', 50, 150);
+      doc.fillColor('#444444').fontSize(10).font('Helvetica')
+        .text(`Rechnungsnr: RE-${order.invoiceNumber}`, 50, 175)
+        .text(`Datum: ${new Date(order.createdAt).toLocaleDateString('de-DE')}`, 50, 190);
     }
-  } catch (error) {
-    console.error('Logo Fehler', error);
-  }
-  
-  doc.fillColor('#444444').fontSize(10)
-    .font('Helvetica-Bold').text('AfghanShop - Afghanische Spezialitäten', 50, 50)
-    .font('Helvetica').text('Jawed REZAI')
-    .font('Helvetica').text('Mozartstrasse 17/6')
-    .text('5280 Braunau am Inn')
-    .text('Email: info@afghanshop.at')
-    .moveDown();
+  };
 
-  doc.moveDown(2);
-  doc.fillColor('#0099b5').fontSize(22).font('Helvetica-Bold').text('RECHNUNG', 50, 150);
-  doc.fillColor('#444444').fontSize(10).font('Helvetica')
-    .text(`Rechnungsnr: RE-${order.invoiceNumber}`, 50, 175)
-    .text(`Datum: ${new Date(order.createdAt).toLocaleDateString('de-DE')}`, 50, 190);
+  const drawTableHeader = (y) => {
+    doc.rect(50, y, 500, 25).fill('#0099b5');
+    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(11)
+      .text('Produkt', 60, y + 7)
+      .text('Menge', 280, y + 7)
+      .text('Einzelpreis', 360, y + 7)
+      .text('Gesamt', 460, y + 7);
+    return y + 35;
+  };
 
-  const tableTop = 260;
-  doc.rect(50, tableTop, 500, 25).fill('#0099b5');
-  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(11)
-    .text('Produkt', 60, tableTop + 7)
-    .text('Menge', 280, tableTop + 7)
-    .text('Einzelpreis', 360, tableTop + 7)
-    .text('Gesamt', 460, tableTop + 7);
+  drawHeader(true);
+  let currentY = drawTableHeader(260);
 
   let i = 0;
-  let currentY = tableTop + 35;
-
   for (const item of order.orderItems) {
+    // Check ob Platz für Item + evtl. Bundle-Infos ist
+    if (currentY > pageBottom - 50) {
+      doc.addPage();
+      drawHeader(false);
+      currentY = drawTableHeader(120);
+    }
+
     if (i % 2 === 0) {
       doc.rect(50, currentY - 5, 500, 45).fill('#f2f2f2'); 
     }
@@ -106,7 +119,6 @@ const drawInvoiceContent = async (doc, order) => {
 
     let weightLabel = "";
     let rawWeight = item.weight;
-    
     if (!rawWeight) {
       const dbProd = await Product.findById(item.product).lean();
       if (dbProd) rawWeight = dbProd.weight;
@@ -118,20 +130,16 @@ const drawInvoiceContent = async (doc, order) => {
         const half = w.length / 2;
         if (w.substring(0, half) === w.substring(half)) w = w.substring(0, half);
       }
-      
       const unit = item.unit || 'g';
       const fullW = `${w}${unit}`;
       const nameClean = item.name.toLowerCase().replace(/\s/g, '');
       const weightClean = fullW.toLowerCase().replace(/\s/g, '');
-
-      if (!nameClean.includes(weightClean)) {
-        weightLabel = ` (${fullW})`;
-      }
+      if (!nameClean.includes(weightClean)) weightLabel = ` (${fullW})`;
     }
 
     const displayName = (item.isBundle ? `🎁 ${item.name}` : item.name) + weightLabel;
     
-    doc.text(displayName, 60, currentY + 10)
+    doc.text(displayName, 60, currentY + 10, { width: 210 })
       .text(item.qty.toString(), 280, currentY + 10);
 
     if (item.oldPrice && Number(item.oldPrice) > Number(item.price)) {
@@ -155,17 +163,22 @@ const drawInvoiceContent = async (doc, order) => {
       if (productData && productData.bundleItems) {
         currentY += 25;
         doc.fillColor('#777777').fontSize(8).font('Helvetica-Oblique');
-        if (Array.isArray(productData.bundleItems)) {
-          for (const bItem of productData.bundleItems) {
-            doc.text(`   • Enthält: ${bItem.qty}x ${bItem.name || 'Produkt'}`, 60, currentY);
-            currentY += 12;
-          }
+        for (const bItem of productData.bundleItems) {
+          doc.text(`   • Enthält: ${bItem.qty}x ${bItem.name || 'Produkt'}`, 60, currentY);
+          currentY += 12;
         }
       }
     }
 
     currentY += 35;
     i++;
+  }
+
+  // Platzprüfung für Footer
+  if (currentY > pageBottom - 100) {
+    doc.addPage();
+    drawHeader(false);
+    currentY = 120;
   }
 
   const depositValue = order.totalDeposit || 0;
@@ -263,7 +276,6 @@ export const addOrder = async (req, res) => {
       }
     }
 
-    // PDF Generierung und E-Mail Versand
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     let buffers = [];
     doc.on('data', buffers.push.bind(buffers));
