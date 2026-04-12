@@ -104,7 +104,6 @@ const drawInvoiceContent = async (doc, order) => {
 
   let i = 0;
   for (const item of order.orderItems) {
-    // Check ob Platz für Item + evtl. Bundle-Infos ist
     if (currentY > pageBottom - 50) {
       doc.addPage();
       drawHeader(false);
@@ -174,7 +173,6 @@ const drawInvoiceContent = async (doc, order) => {
     i++;
   }
 
-  // Platzprüfung für Footer
   if (currentY > pageBottom - 100) {
     doc.addPage();
     drawHeader(false);
@@ -425,15 +423,43 @@ export const confirmPayment = async (req, res) => {
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
+// --- NEU: HIER WIRD DIE LIEFER-MAIL GESENDET ---
 export const updateOrderToDelivered = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
     if (order) {
       order.isDelivered = true;
       order.deliveredAt = Date.now();
       order.carrier = req.body.carrier || order.carrier;
       order.trackingNumber = req.body.trackingNumber || order.trackingNumber;
+      
       const updatedOrder = await order.save();
+
+      // Mail an Kunden senden
+      const trackingInfo = order.trackingNumber 
+        ? `<p>Deine Sendungsverfolgungsnummer lautet: <strong>${order.trackingNumber}</strong></p>
+           <p><a href="https://www.post.at/s/sendungsverfolgung?snr=${order.trackingNumber}">Hier klicken zum Verfolgen</a></p>`
+        : `<p>Deine Bestellung wird per Eigenzustellung geliefert.</p>`;
+
+      const deliveryMail = {
+        from: `"AfghanShop" <${process.env.MAIL_FROM || 'info@afghanshop.at'}>`,
+        to: order.user.email,
+        subject: `Deine Bestellung RE-${order.invoiceNumber} ist auf dem Weg!`,
+        html: `
+          <h3>Hallo ${order.shippingAddress.fullName},</h3>
+          <p>Gute Nachrichten! Deine Bestellung wurde gerade als versandt markiert.</p>
+          ${trackingInfo}
+          <p>Vielen Dank für deinen Einkauf!</p>
+          <p>Dein AfghanShop Team</p>
+        `
+      };
+
+      try {
+        await transporter.sendMail(deliveryMail);
+      } catch (mailErr) {
+        console.error("Liefer-Mail konnte nicht gesendet werden:", mailErr);
+      }
+
       res.json(updatedOrder);
     } else { res.status(404).json({ message: 'Bestellung nicht gefunden' }); }
   } catch (error) { res.status(500).json({ message: error.message }); }

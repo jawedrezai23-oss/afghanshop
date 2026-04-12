@@ -259,13 +259,31 @@ export default function UserProfile() {
                     <div>
                       <span className="text-[8px] font-black text-cyan-500 uppercase tracking-[0.2em]">Referenz</span>
                       <h3 className="font-black text-slate-900 text-md uppercase">#{order.invoiceNumber || order._id.slice(-8)}</h3>
-                      <div className="flex gap-2 mt-1">
+                      <div className="flex flex-wrap gap-2 mt-1">
                          <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-md ${order.isPaid ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                            {order.isPaid ? 'Bezahlt' : 'Offen'}
                          </span>
                          <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-md ${order.isDelivered ? 'bg-cyan-100 text-cyan-600' : 'bg-slate-100 text-slate-400'}`}>
                            {order.isDelivered ? 'Geliefert' : 'Bearbeitung'}
                          </span>
+
+                         {/* NEU: Tracking oder Eigenzustellung */}
+                         {order.isDelivered && (
+                           order.trackingNumber ? (
+                             <a 
+                               href={`https://www.post.at/s/sendungsverfolgung?snr=${order.trackingNumber}`}
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               className="text-[8px] font-black uppercase px-2 py-1 rounded-md bg-orange-100 text-orange-600 hover:bg-orange-200 transition-colors"
+                             >
+                               🚚 Post Tracking
+                             </a>
+                           ) : (
+                             <span className="text-[8px] font-black uppercase px-2 py-1 rounded-md bg-indigo-100 text-indigo-600">
+                               🏠 Eigenzustellung
+                             </span>
+                           )
+                         )}
                       </div>
                     </div>
                   </div>
