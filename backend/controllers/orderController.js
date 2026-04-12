@@ -16,28 +16,27 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- AKTUALISIERTER MAIL-BEREICH FÜR NETCUP (PORT 587) ---
+// --- FINALE LÖSUNG FÜR NETCUP (PORT 25) ---
 const transporter = nodemailer.createTransport({
   host: process.env.MAIL_HOST || 'mx150e.netcup.net',
-  port: parseInt(process.env.MAIL_PORT) || 587,
-  // Wenn Port 465 genutzt wird, secure auf true. Bei Port 587 auf false.
-  secure: (process.env.MAIL_PORT === '465'), 
+  port: 25, // Port 25 ist oft die letzte Rettung bei Timeouts
+  secure: false, // Muss false sein für Port 25/587
   auth: {
     user: process.env.MAIL_USER || 'info@afghanshop.at',
     pass: process.env.MAIL_PASS,
   },
   tls: {
-    // Verhindert Timeout/Zertifikatsfehler auf Cloud-Servern wie Render
-    rejectUnauthorized: false
+    rejectUnauthorized: false, // Ignoriert Zertifikatsfehler zwischen Render/Netcup
+    ignoreTLS: false
   }
 });
 
 // Test-Log für Render Dashboard
 transporter.verify((error, success) => {
   if (error) {
-    console.log("!!! Mail-Server Verbindung fehlgeschlagen:", error);
+    console.log("!!! Mail-Server Verbindung fehlgeschlagen auf Port 25:", error);
   } else {
-    console.log("--- Mail-Server (Netcup) ist bereit ---");
+    console.log("--- Mail-Server (Netcup) ist JETZT bereit ---");
   }
 });
 
@@ -282,7 +281,8 @@ export const addOrder = async (req, res) => {
 
       const adminMail = {
         from: `"AfghanShop System" <${process.env.MAIL_USER || 'info@afghanshop.at'}>`,
-        to: "info@afghanshop.at",
+        // Hier habe ich deine zweite Mailadresse direkt hinzugefügt
+        to: ["info@afghanshop.at", "Jawedrezai23@hotmail.com"],
         subject: `NEUE BESTELLUNG - RE-${populatedOrder.invoiceNumber}`,
         html: `
           <h3>Neue Bestellung erhalten!</h3>
@@ -308,6 +308,7 @@ export const addOrder = async (req, res) => {
   }
 };
 
+// ... Rest des Codes bleibt gleich ...
 export const deleteOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
