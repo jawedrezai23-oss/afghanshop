@@ -45,10 +45,24 @@ const generatePaymentQRCode = async (order) => {
   const bic = "SUMUIE22XXX";
   const name = "Jawed REZAI";
   const amount = Number(order.totalPrice).toFixed(2);
-  const info = `RE-${order.invoiceNumber}`; // Dies wird nun als Verwendungszweck genutzt
+  const info = `RE-${order.invoiceNumber}`;
 
-  // Der EPC-Standard nutzt Feld 10 für Referenz (leer lassen) und Feld 11 für Verwendungszweck
-  const qrData = `BCD\n001\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\nNONE\n\n${info}\nVielen Dank`;
+  /**
+   * EPC QR Code Struktur (SCT):
+   * 1. Service Tag (BCD)
+   * 2. Version (001)
+   * 3. Character Set (1 - UTF-8)
+   * 4. Identification (SCT)
+   * 5. BIC
+   * 6. Name des Empfängers
+   * 7. IBAN
+   * 8. Betrag (EUR + Zahl)
+   * 9. Purpose (Optional)
+   * 10. Structured Reference (Leer lassen, wenn Verwendungszweck genutzt wird)
+   * 11. Unstructured Remittance Info (Verwendungszweck)
+   * 12. Information (Optional)
+   */
+  const qrData = `BCD\n001\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\n\n\n${info}\n`;
 
   try {
     return await QRCode.toDataURL(qrData, {
