@@ -10,19 +10,16 @@ export default function Order() {
   const [deliverLoading, setDeliverLoading] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
 
-  // User Info aus LocalStorage holen
   const userInfo = localStorage.getItem('userInfo') 
     ? JSON.parse(localStorage.getItem('userInfo')) 
     : null;
 
   useEffect(() => {
-    // 1. Check ob User eingeloggt ist
     if (!userInfo) {
       navigate('/login');
       return;
     }
 
-    // 2. Daten laden
     const fetchOrder = async () => {
       try {
         const { data } = await api.get(`/orders/${orderId}`);
@@ -37,14 +34,12 @@ export default function Order() {
     fetchOrder();
   }, [orderId, navigate]);
 
-  // FUNKTION: Rechnung vom Backend laden
   const downloadInvoice = async () => {
     setInvoiceLoading(true);
     try {
       const response = await api.get(`/orders/${orderId}/invoice`, {
         responseType: 'blob',
       });
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -77,7 +72,7 @@ export default function Order() {
 
   if (loading) return (
     <div className="p-20 text-center font-bold text-slate-400 text-2xl animate-pulse uppercase">
-      Lade Bestellung...
+      Bestellung wird geladen...
     </div>
   );
 
@@ -87,127 +82,163 @@ export default function Order() {
     </div>
   );
 
-  // PFAND-BERECHNUNG
   const depositValue = order.totalDeposit > 0 
     ? order.totalDeposit 
     : order.orderItems.reduce((acc, item) => acc + (item.isDeposit ? (Number(item.depositValue) * item.qty) : 0), 0);
 
-  // Der Verwendungszweck (Reference Code)
   const refCode = `RE-${order.invoiceNumber || order._id.slice(-6).toUpperCase()}`;
 
+  // Logik für die Status-Timeline
+  const statusSteps = [
+    { label: 'Bestellt', done: true, date: order.createdAt },
+    { label: 'Bezahlt', done: order.isPaid, date: order.paidAt },
+    { label: 'Versendet', done: order.isDelivered, date: order.deliveredAt }, // Hier könnte man auch isShipped nutzen falls vorhanden
+    { label: 'Geliefert', done: order.isDelivered, date: order.deliveredAt },
+  ];
+
   return (
-    <div className="bg-slate-50 min-h-screen py-12 px-4 font-sans text-slate-900">
+    <div className="bg-slate-50 min-h-screen py-8 md:py-16 px-4 font-sans text-slate-900">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white shadow-2xl rounded-[3.5rem] p-8 md:p-12 border border-slate-100 relative overflow-hidden">
+        <div className="bg-white shadow-2xl rounded-[3rem] p-6 md:p-12 border border-slate-100 overflow-hidden">
           
-          {/* HEADER MIT STATUS */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+          {/* HEADER SEKTION */}
+          <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-12">
             <div>
-              <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-900">Bestellübersicht</h1>
-              <p className="text-cyan-500 font-black tracking-widest text-sm uppercase">NR: {order.invoiceNumber || order._id.slice(-6).toUpperCase()}</p>
-              
-              <div className="flex gap-2 mt-2">
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${order.isPaid ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                  {order.isPaid ? `Bezahlt am ${new Date(order.paidAt).toLocaleDateString()}` : 'Nicht Bezahlt'}
-                </span>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${order.isDelivered ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
-                  {order.isDelivered ? `Geliefert am ${new Date(order.deliveredAt).toLocaleDateString()}` : 'Versand ausstehend'}
-                </span>
-              </div>
+              <p className="text-cyan-500 font-black tracking-[0.2em] text-[10px] uppercase mb-1">Deine Bestellung</p>
+              <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-900 mb-2">Details</h1>
+              <p className="inline-block bg-slate-100 px-4 py-1 rounded-lg font-mono font-bold text-slate-600 text-sm italic">NR: {order.invoiceNumber}</p>
             </div>
 
-            <div className="flex flex-col gap-3 w-full md:w-auto">
+            <div className="flex flex-wrap gap-3 w-full md:w-auto">
               <button
                 onClick={downloadInvoice}
                 disabled={invoiceLoading}
-                className="bg-cyan-500 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-900 shadow-xl transition-all disabled:opacity-50"
+                className="flex-1 md:flex-none bg-cyan-500 text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 shadow-lg transition-all disabled:opacity-50"
               >
-                {invoiceLoading ? 'LADE PDF...' : '📄 RECHNUNG LADEN'}
+                {invoiceLoading ? 'WIRD ERSTELLT...' : '📄 RECHNUNG (PDF)'}
               </button>
 
               {userInfo?.isAdmin && !order.isDelivered && (
                 <button
                   onClick={deliverHandler}
-                  disabled={deliverLoading}
-                  className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-cyan-600 shadow-xl transition-all disabled:opacity-50"
+                  className="flex-1 md:flex-none bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 shadow-lg transition-all"
                 >
-                  {deliverLoading ? 'WIRD AKTUALISIERT...' : '🚚 ALS GELIEFERT MARKIEREN'}
+                  🚚 GELIEFERT MARKIEREN
                 </button>
               )}
             </div>
           </div>
 
-          {/* ZAHLUNGS-INFO BLOCK - OPTIMIERT FÜR VERWENDUNGSZWECK */}
-{/* ZAHLUNGS-INFO BLOCK */}
-{(order.paymentMethod === 'Überweisung' || order.paymentMethod === 'Sofortüberweisung') && !order.isPaid && (
-  <div className="bg-slate-900 border-2 border-cyan-500/30 p-8 rounded-[3rem] mb-12 flex flex-col items-center text-center text-white shadow-2xl">
-    <div className="bg-cyan-500 text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">Zahlungsinformationen</div>
-    
-    <p className="text-slate-300 font-bold text-sm mb-2 uppercase tracking-tight">Verwendungszweck:</p>
-    <p className="bg-white/10 text-cyan-400 px-6 py-2 rounded-xl font-mono text-xl font-black border border-white/10 mb-6">
-      {refCode}
-    </p>
+          {/* NEU: TRACKING & STATUS TIMELINE */}
+          <div className="bg-slate-50 rounded-[2.5rem] p-8 mb-12 border border-slate-100 shadow-inner">
+             <div className="flex flex-col md:flex-row justify-between items-center gap-8">
+                {statusSteps.map((step, index) => (
+                  <div key={index} className="flex flex-col items-center relative z-10">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 shadow-md ${step.done ? 'bg-cyan-500 text-white' : 'bg-white text-slate-300 border-2 border-slate-200'}`}>
+                      {step.done ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg> : <span className="text-xs font-black">{index + 1}</span>}
+                    </div>
+                    <span className={`text-[10px] font-black uppercase tracking-widest ${step.done ? 'text-slate-900' : 'text-slate-400'}`}>{step.label}</span>
+                    {step.done && step.date && (
+                      <span className="text-[9px] font-bold text-cyan-600 mt-1 uppercase opacity-70">{new Date(step.date).toLocaleDateString('de-DE')}</span>
+                    )}
+                  </div>
+                ))}
+             </div>
 
-    {order.qrCode ? (
-      <div className="bg-white p-4 rounded-[2.5rem] shadow-xl mb-4">
-        <img src={order.qrCode} alt="Zahlungs QR" className="w-48 h-48" />
-      </div>
-    ) : (
-      <p className="text-xs text-slate-400 mb-6 italic">QR-Code wird generiert...</p>
-    )}
+             {/* PAKETVERFOLGUNG (Falls trackingNumber existiert) */}
+             {order.trackingNumber && (
+               <div className="mt-10 pt-8 border-t border-slate-200 flex flex-col items-center">
+                  <div className="bg-white px-6 py-6 rounded-3xl shadow-sm border border-slate-100 w-full text-center">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2">Sendungsverfolgung</p>
+                    <p className="text-lg font-black text-slate-900 mb-4">{order.trackingNumber}</p>
+                    <a 
+                      href={`https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode=${order.trackingNumber}`}
+                      target="_blank" rel="noreferrer"
+                      className="bg-slate-900 text-white px-10 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-cyan-600 transition-all inline-block"
+                    >
+                      📦 Paket verfolgen
+                    </a>
+                  </div>
+               </div>
+             )}
+          </div>
 
-    {/* NEUER HINWEIS TEXT */}
-    <p className="text-[10px] text-cyan-500 font-black uppercase tracking-[0.2em] mb-6">
-      Scan mit deiner Bank-App
-    </p>
+          {/* ZAHLUNGS-INFO (Nur wenn unbezahlt) */}
+          {(order.paymentMethod === 'Überweisung' || order.paymentMethod === 'Sofortüberweisung') && !order.isPaid && (
+            <div className="bg-slate-900 border-2 border-cyan-500/30 p-8 rounded-[3rem] mb-12 flex flex-col items-center text-center text-white shadow-2xl animate-in fade-in zoom-in duration-500">
+              <div className="bg-cyan-500 text-white px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest mb-6 italic">Bezahlung ausstehend</div>
+              
+              <div className="bg-white/5 border border-white/10 p-5 rounded-[2rem] w-full max-w-xs mb-6">
+                  <p className="text-slate-400 font-bold text-[9px] uppercase tracking-widest mb-2">Verwendungszweck</p>
+                  <p className="text-cyan-400 font-mono text-2xl font-black mb-1">{refCode}</p>
+                  <p className="text-[9px] text-slate-500 font-bold italic">IBAN: IE49 SUMU 9903 6512 7681 45</p>
+              </div>
 
-    <div className="space-y-1">
-      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Empfänger: Jawed REZAI</p>
-      <p className="text-xs font-mono font-bold text-cyan-400">IBAN: IE49 SUMU 9903 6512 7681 45</p>
-      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic text-center">
-        Der QR-Code füllt Betrag und Verwendungszweck automatisch aus.
-      </p>
-    </div>
-  </div>
-)}
-          {/* ARTIKELLISTE */}
-          <div className="border-t border-slate-100 pt-10">
-            <h3 className="font-black uppercase tracking-widest text-[10px] text-slate-400 mb-6">Bestellte Artikel</h3>
-            {order.orderItems.map((item, index) => (
-              <div key={index} className="flex justify-between items-center mb-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-50">
-                <div className="flex flex-col">
-                  <span className="font-black text-slate-700 uppercase text-sm leading-tight">{item.name.split('/')[0]}</span>
-                  <span className="text-slate-400 font-bold text-[10px] uppercase">Menge: {item.qty} x {item.price.toFixed(2)} €</span>
+              {order.qrCode && (
+                <div className="bg-white p-4 rounded-[2.5rem] shadow-xl mb-4">
+                  <img src={order.qrCode} alt="Zahlungs QR" className="w-40 h-40" />
                 </div>
-                <span className="font-black text-slate-900 text-lg">{(item.qty * item.price).toFixed(2)} €</span>
+              )}
+              <p className="text-[9px] text-slate-400 font-bold italic uppercase tracking-widest mt-2">Scan für automatische Überweisung</p>
+            </div>
+          )}
+
+          {/* ARTIKELLISTE */}
+          <div className="space-y-4">
+            <h3 className="font-black uppercase tracking-[0.2em] text-[10px] text-slate-400 px-4">Deine Produkte</h3>
+            {order.orderItems.map((item, index) => (
+              <div key={index} className="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-50 hover:border-cyan-100 transition-all">
+                <div className="flex items-center gap-4 w-full">
+                  <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm overflow-hidden">
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="font-black text-slate-800 uppercase text-xs leading-tight">{item.name}</span>
+                    <span className="text-slate-400 font-bold text-[10px] uppercase">{item.qty} Stück x {item.price.toFixed(2)} €</span>
+                  </div>
+                </div>
+                <span className="font-black text-slate-900 text-lg w-full md:w-auto text-right">{(item.qty * item.price).toFixed(2)} €</span>
               </div>
             ))}
-            
-            {/* SUMMEN-BERECHNUNG */}
-            <div className="mt-12 flex flex-col items-end border-t-2 border-slate-50 pt-8 space-y-1">
-              <div className="flex justify-between w-full max-w-[200px] text-slate-500 font-bold text-xs uppercase">
-                <span>Zwischensumme:</span>
+          </div>
+
+          {/* KOSTEN-ÜBERSICHT */}
+          <div className="mt-12 pt-10 border-t border-slate-100 flex flex-col items-end">
+            <div className="w-full max-w-xs space-y-2">
+              <div className="flex justify-between text-slate-500 font-bold text-[10px] uppercase tracking-widest px-2">
+                <span>Warenwert</span>
                 <span>{order.itemsPrice.toFixed(2)} €</span>
               </div>
-
               {depositValue > 0 && (
-                <div className="flex justify-between w-full max-w-[200px] text-orange-600 font-bold text-xs uppercase">
-                  <span>zzgl. Pfand:</span>
+                <div className="flex justify-between text-orange-500 font-black text-[10px] uppercase tracking-widest px-2">
+                  <span>Getränkepfand</span>
                   <span>{depositValue.toFixed(2)} €</span>
                 </div>
               )}
-
-              <div className="flex justify-between w-full max-w-[200px] text-slate-500 font-bold text-xs uppercase">
-                <span>Versand:</span>
-                <span>{order.shippingPrice.toFixed(2)} €</span>
+              <div className="flex justify-between text-slate-500 font-bold text-[10px] uppercase tracking-widest px-2">
+                <span>Versand</span>
+                <span className={order.shippingPrice === 0 ? "text-emerald-500 italic" : ""}>{order.shippingPrice === 0 ? "GRATIS" : `${order.shippingPrice.toFixed(2)} €`}</span>
               </div>
-
-              <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col items-end">
-                <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest mb-1">Gesamtbetrag</p>
-                <p className="text-6xl font-black text-slate-900 tracking-tighter">{order.totalPrice.toFixed(2)} €</p>
+              <div className="mt-4 p-6 bg-slate-900 rounded-3xl text-right">
+                <p className="text-cyan-400 font-black text-[10px] uppercase tracking-widest mb-1">Gesamtsumme</p>
+                <p className="text-4xl font-black text-white tracking-tighter">{order.totalPrice.toFixed(2)} €</p>
               </div>
             </div>
           </div>
+
+          {/* SUPPORT FOOTER */}
+          <div className="mt-12 pt-10 border-t border-slate-50 text-center">
+             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4">Fragen zu dieser Bestellung?</p>
+             <a 
+               href={`https://wa.me/4369010088854?text=Frage zur Bestellung ${refCode}`}
+               target="_blank" rel="noreferrer"
+               className="inline-flex items-center gap-2 text-slate-500 hover:text-cyan-600 font-bold text-xs uppercase transition-all"
+             >
+               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+               Kundenservice kontaktieren
+             </a>
+          </div>
+
         </div>
       </div>
     </div>
