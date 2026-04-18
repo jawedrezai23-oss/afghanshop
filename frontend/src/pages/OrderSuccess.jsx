@@ -87,17 +87,31 @@ const OrderSuccess = () => {
     doc.setFont("helvetica", "bold");
     doc.text(`TOTAL: ${order.totalPrice.toFixed(2)} €`, 140, finalY);
 
+    // --- ZAHLUNGSINFORMATIONEN (WICHTIG FÜR ÜBERWEISUNG) ---
+    if (order.paymentMethod === 'Überweisung' || order.paymentMethod === 'Vorkasse') {
+        doc.setFontSize(10);
+        doc.setTextColor(0);
+        doc.setFont("helvetica", "bold");
+        doc.text("Bitte überweisen Sie den Betrag an:", 20, finalY + 15);
+        doc.setFont("helvetica", "normal");
+        doc.text("Inhaber: Jawed REZAI", 20, finalY + 20);
+        doc.text("IBAN: IE49SUMU99036512768145", 20, finalY + 25);
+        doc.setFont("helvetica", "bold");
+        doc.text(`Verwendungszweck: RE-${order.invoiceNumber}`, 20, finalY + 30);
+    }
+
     // Rechtlicher Hinweis
     doc.setFontSize(9);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(120);
-    doc.text("Hinweis: Gemäß Kleinunternehmerregelung (§ 19 UStG / § 6 Abs. 1 Z 27 UStG)", 20, finalY + 30);
-    doc.text("wird keine Umsatzsteuer berechnet und ausgewiesen.", 20, finalY + 35);
+    const hintY = finalY + 45;
+    doc.text("Hinweis: Gemäß Kleinunternehmerregelung (§ 19 UStG / § 6 Abs. 1 Z 27 UStG)", 20, hintY);
+    doc.text("wird keine Umsatzsteuer berechnet und ausgewiesen.", 20, hintY + 5);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(6, 182, 212);
-    doc.text("Vielen Dank für Ihren Einkauf!", 105, finalY + 55, { align: "center" });
+    doc.text("Vielen Dank für Ihren Einkauf!", 105, hintY + 20, { align: "center" });
 
     doc.save(`Rechnung_AfghanShop_${order.invoiceNumber || 'Order'}.pdf`);
   };

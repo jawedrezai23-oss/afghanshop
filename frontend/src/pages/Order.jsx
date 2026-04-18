@@ -92,6 +92,7 @@ export default function Order() {
     ? order.totalDeposit 
     : order.orderItems.reduce((acc, item) => acc + (item.isDeposit ? (Number(item.depositValue) * item.qty) : 0), 0);
 
+  // Der Verwendungszweck (Reference Code)
   const refCode = `RE-${order.invoiceNumber || order._id.slice(-6).toUpperCase()}`;
 
   return (
@@ -136,23 +137,27 @@ export default function Order() {
             </div>
           </div>
 
-          {/* ZAHLUNGS-INFO BLOCK */}
-          {(order.paymentMethod === 'Überweisung' || order.paymentMethod === 'Sofortüberweisung') && !order.isPaid && (
+          {/* ZAHLUNGS-INFO BLOCK - OPTIMIERT FÜR VERWENDUNGSZWECK */}
+          {(order.paymentMethod === 'Überweisung' || order.paymentMethod === 'Sofortüberweisung' || order.paymentMethod === 'Vorkasse') && !order.isPaid && (
             <div className="bg-slate-900 border-2 border-cyan-500/30 p-8 rounded-[3rem] mb-12 flex flex-col items-center text-center text-white shadow-2xl">
               <div className="bg-cyan-500 text-white px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">Zahlungsinformationen</div>
               
-              <p className="text-slate-300 font-bold text-sm mb-2 uppercase tracking-tight">Verwendungszweck:</p>
+              <p className="text-slate-300 font-bold text-sm mb-2 uppercase tracking-tight">Verwendungszweck für deine App:</p>
               <p className="bg-white/10 text-cyan-400 px-6 py-2 rounded-xl font-mono text-xl font-black border border-white/10 mb-6">
                 {refCode}
               </p>
 
               {order.qrCode ? (
-                <div className="bg-white p-4 rounded-[2.5rem] shadow-xl mb-6">
+                <div className="bg-white p-4 rounded-[2.5rem] shadow-xl mb-4">
                   <img src={order.qrCode} alt="Zahlungs QR" className="w-48 h-48" />
                 </div>
               ) : (
                 <p className="text-xs text-slate-400 mb-6 italic">QR-Code wird generiert...</p>
               )}
+              
+              <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-[0.2em] mb-6">
+                Einfach scannen & überweisen
+              </p>
 
               <div className="space-y-1">
                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest italic">Empfänger: Jawed REZAI</p>
