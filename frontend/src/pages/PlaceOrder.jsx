@@ -44,18 +44,33 @@ export default function PlaceOrder() {
   useEffect(() => {
     const generateQR = async () => {
       if (paymentMethod === 'Überweisung' && nextInvoiceNum) {
-        // --- HIER WURDE DIE IBAN AKTUALISIERT ---
         const iban = "IE49SUMU99036512768145"; 
         const bic = "SUMUIE22XXX"; 
         const name = "Jawed REZAI";
         const amount = totalPrice.toFixed(2);
         
-        const qrData = `BCD\n001\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\nNONE\n${refCode}\nVielen Dank`;
+        // --- KORRIGIERTE STRUKTUR FÜR DEN EPC-STANDARD ---
+        // Wir nutzen ein Array und join('\n'), um exakt 11 Zeilenumbrüche zu haben.
+        const qrData = [
+          'BCD',              // 1. Service Tag
+          '001',              // 2. Version
+          '1',                // 3. Character Set (UTF-8)
+          'SCT',              // 4. Identification
+          bic,                // 5. BIC
+          name,               // 6. Name
+          iban,               // 7. IBAN
+          `EUR${amount}`,     // 8. Betrag
+          '',                 // 9. Purpose (leer)
+          '',                 // 10. Structured Reference (MUSS LEER SEIN)
+          refCode,            // 11. Unstructured Remittance (HIER LANDET DER VERWENDUNGSZWECK)
+          ''                  // 12. Beneficiary Info (leer)
+        ].join('\n');
         
         try {
           const url = await QRCode.toDataURL(qrData, {
             width: 400,
             margin: 2,
+            errorCorrectionLevel: 'M',
             color: { dark: '#000000', light: '#ffffff' }
           });
           setQrCodeUrl(url);
@@ -164,7 +179,6 @@ export default function PlaceOrder() {
                     <div className="py-4 px-6 bg-white/5 rounded-2xl border border-white/10">
                       <p className="text-[10px] text-cyan-400 font-black uppercase tracking-widest mb-1 italic">Verwendungszweck für deine App</p>
                       <p className="text-sm font-mono font-bold tracking-wider select-all text-white bg-blue-600/20 py-1 px-3 rounded-lg border border-blue-500/30 inline-block">{refCode}</p>
-                      {/* --- HIER WURDE DIE TEXT-ANZEIGE DER IBAN AKTUALISIERT --- */}
                       <p className="text-[9px] text-slate-400 font-bold mt-2">IBAN: IE49 SUMU 9903 6512 7681 45</p>
                     </div>
                     <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-[2rem]">
@@ -182,7 +196,8 @@ export default function PlaceOrder() {
                 </div>
               )}
             </div>
-
+            
+            {/* ... Rest der Produktanzeige bleibt gleich ... */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100">
               <h2 className="text-xl font-black uppercase tracking-tight mb-6">Deine Auswahl</h2>
               <div className="space-y-4">
