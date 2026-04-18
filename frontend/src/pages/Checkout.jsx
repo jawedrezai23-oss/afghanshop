@@ -20,50 +20,55 @@ export default function Checkout() {
     setCartItems(items);
   }, []);
 
+  // --- BERECHNUNGEN ---
+  const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+  
+  // Getränkepfand Berechnung (falls vorhanden)
+  const depositPrice = cartItems.reduce((acc, item) => 
+    acc + (item.isDeposit ? (Number(item.depositValue) * item.qty) : 0), 0
+  );
+
+  const shippingLimit = 60; // Gratis ab 60€
+  const standardShipping = 4.99; // Sonst 4,99€
+  
+  // Versand ist 0 bei Abholung ODER wenn Warenwert >= 60€
+  const currentShipping = isAnonymousOrder ? 0 : (itemsPrice >= shippingLimit ? 0 : standardShipping);
+  const totalPrice = itemsPrice + currentShipping + depositPrice;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-      
-      // --- KORRIGIERTE VERSAND-LOGIK ---
-      const shippingLimit = 60; // Gratis ab 60€
-      const standardShipping = 4.99; // Sonst 4,99€
-      
-      const shippingPrice = isAnonymousOrder ? 0 : (itemsPrice >= shippingLimit ? 0 : standardShipping);
-      const totalPrice = itemsPrice + shippingPrice;
-
       const orderData = {
         orderItems: cartItems,
         shippingAddress: isAnonymousOrder ? { 
-            fullName: 'Barzahlung', 
+            fullName: 'Barzahlung / Abholung', 
             address: 'Abholung im Shop',
             city: 'Braunau',
             postalCode: '5280',
             phone: '000',
             country: 'Austria'
         } : shippingAddress,
-        paymentMethod: isAnonymousOrder ? 'Barzahlung' : 'Sofortüberweisung',
+        paymentMethod: isAnonymousOrder ? 'Barzahlung' : 'Überweisung', // Hier 'Überweisung' für den QR-Code Trigger
         itemsPrice,
-        shippingPrice,
+        shippingPrice: currentShipping,
+        totalDeposit: depositPrice,
         totalPrice,
         isAnonymousOrder: isAnonymousOrder, 
       };
 
+      // Bestellung an Backend senden
       const { data } = await api.post('/orders', orderData);
       
       localStorage.removeItem('cartItems');
       window.dispatchEvent(new Event("cart-updated"));
       
+      // Weiterleitung zur Order-Detail Seite (dort erscheint der korrekte QR-Code)
       navigate(`/order/${data._id}`);
     } catch (error) {
       console.error(error);
-      alert("Fehler bei der Bestellung");
+      alert("Fehler bei der Bestellung: " + (error.response?.data?.message || "Unbekannter Fehler"));
     }
   };
-
-  // Anzeige-Logik korrigiert
-  const itemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const currentShipping = isAnonymousOrder ? 0 : (itemsPrice >= 60 ? 0 : 4.99);
 
   return (
     <div className="bg-slate-50 min-h-screen py-8 md:py-16 px-4 selection:bg-cyan-100">
@@ -80,6 +85,14 @@ export default function Checkout() {
                 <span className="text-slate-400 font-bold uppercase text-[9px] tracking-widest">Warenwert</span>
                 <span className="font-black text-slate-800">{itemsPrice.toFixed(2)} €</span>
             </div>
+
+            {depositPrice > 0 && (
+              <div className="flex justify-between mb-3">
+                  <span className="text-orange-500 font-bold uppercase text-[9px] tracking-widest">Getränkepfand</span>
+                  <span className="font-black text-orange-600">{depositPrice.toFixed(2)} €</span>
+              </div>
+            )}
+
             <div className="flex justify-between mb-4 pb-4 border-b border-slate-200">
                 <span className="text-slate-400 font-bold uppercase text-[9px] tracking-widest">Versandkosten</span>
                 <span className={`font-black uppercase text-[10px] ${currentShipping === 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
@@ -88,7 +101,7 @@ export default function Checkout() {
             </div>
             <div className="flex justify-between items-center">
                 <span className="text-slate-900 font-black uppercase text-[10px] tracking-widest">Gesamtbetrag</span>
-                <span className="text-3xl font-black text-cyan-600 tracking-tighter">{(itemsPrice + currentShipping).toFixed(2)} <span className="text-sm">€</span></span>
+                <span className="text-3xl font-black text-cyan-600 tracking-tighter">{totalPrice.toFixed(2)} <span className="text-sm">€</span></span>
             </div>
         </div>
 
@@ -101,8 +114,8 @@ export default function Checkout() {
             {isAnonymousOrder && <div className="w-2 h-2 bg-white rounded-full"></div>}
           </div>
           <div className="flex flex-col">
-              <span className="font-black text-slate-900 uppercase tracking-tighter text-sm md:text-base">Selbstabholung</span>
-              <span className='text-[10px] font-bold text-cyan-600 uppercase tracking-widest'>Keine Versandkosten | Barzahlung</span>
+              <span className="font-black text-slate-900 uppercase tracking-tighter text-sm md:text-base">Selbstabholung im Shop</span>
+              <span className='text-[10px] font-bold text-cyan-600 uppercase tracking-widest'>Barzahlung vor Ort | Keine Versandkosten</span>
           </div>
         </div>
 
@@ -152,7 +165,7 @@ export default function Checkout() {
                   : "bg-slate-900 text-white shadow-slate-200 hover:bg-cyan-600"
               }`}
             >
-              {isAnonymousOrder ? "Bestellung Bestätigen" : "Zahlungspflichtig bestellen"}
+              {isAnonymousOrder ? "Bestellung bestätigen" : "Zahlungspflichtig bestellen"}
             </button>
           </div>
         </form>
