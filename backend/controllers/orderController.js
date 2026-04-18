@@ -40,6 +40,7 @@ transporter.verify((error, success) => {
 });
 
 // --- HILFSFUNKTION FÜR EPC-QR-CODE (KORRIGIERT FÜR VERWENDUNGSZWECK) ---
+// --- HILFSFUNKTION FÜR EPC-QR-CODE (STRENG NACH STANDARD) ---
 const generatePaymentQRCode = async (order) => {
   const iban = "IE49SUMU99036512768145";
   const bic = "SUMUIE22XXX";
@@ -47,27 +48,27 @@ const generatePaymentQRCode = async (order) => {
   const amount = Number(order.totalPrice).toFixed(2);
   const info = `RE-${order.invoiceNumber}`;
 
-  /**
-   * EPC QR Code Struktur (SCT):
-   * 1. Service Tag (BCD)
-   * 2. Version (001)
-   * 3. Character Set (1 - UTF-8)
-   * 4. Identification (SCT)
-   * 5. BIC
-   * 6. Name des Empfängers
-   * 7. IBAN
-   * 8. Betrag (EUR + Zahl)
-   * 9. Purpose (Leer)
-   * 10. Structured Reference (MUSS LEER SEIN FÜR VERWENDUNGSZWECK)
-   * 11. Unstructured Remittance Info (HIER KOMMT DER VERWENDUNGSZWECK REIN)
-   */
-  // Die leeren Stellen zwischen Betrag (EUR...) und info sind entscheidend!
-  const qrData = `BCD\n001\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\n\n\n${info}\n`;
+  // Der EPC-Standard verlangt exakt diese Struktur:
+  const qrData = [
+    'BCD',              // 1. Service Tag
+    '001',              // 2. Version
+    '1',                // 3. Character Set (1 = UTF-8)
+    'SCT',              // 4. Identification
+    bic,                // 5. BIC
+    name,               // 6. Name
+    iban,               // 7. IBAN
+    `EUR${amount}`,     // 8. Amount
+    '',                 // 9. Purpose (leer)
+    '',                 // 10. Structured Reference (MUSS LEER SEIN für Verwendungszweck)
+    info,               // 11. Unstructured Remittance (HIER landet der Verwendungszweck)
+    ''                  // 12. Beneficiary Information (leer)
+  ].join('\n');
 
   try {
     return await QRCode.toDataURL(qrData, {
       margin: 1,
       width: 300,
+      errorCorrectionLevel: 'M',
       color: { dark: '#000000', light: '#ffffff' }
     });
   } catch (err) {
