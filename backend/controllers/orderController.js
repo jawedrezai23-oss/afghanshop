@@ -57,11 +57,11 @@ const generatePaymentQRCode = async (order) => {
    * 6. Name des Empfängers
    * 7. IBAN
    * 8. Betrag (EUR + Zahl)
-   * 9. Purpose (Optional)
-   * 10. Structured Reference (Leer lassen, wenn Verwendungszweck genutzt wird)
-   * 11. Unstructured Remittance Info (Verwendungszweck)
-   * 12. Information (Optional)
+   * 9. Purpose (Leer)
+   * 10. Structured Reference (MUSS LEER SEIN FÜR VERWENDUNGSZWECK)
+   * 11. Unstructured Remittance Info (HIER KOMMT DER VERWENDUNGSZWECK REIN)
    */
+  // Die leeren Stellen zwischen Betrag (EUR...) und info sind entscheidend!
   const qrData = `BCD\n001\n1\nSCT\n${bic}\n${name}\n${iban}\nEUR${amount}\n\n\n${info}\n`;
 
   try {
