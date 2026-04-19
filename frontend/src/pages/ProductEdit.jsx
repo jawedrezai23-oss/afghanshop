@@ -16,6 +16,10 @@ const AdminProductEdit = () => {
   const [description, setDescription] = useState('');
   const [brand, setBrand] = useState('AfghanShop');
   
+  // --- NEU: KLEIDUNGS LOGIK ---
+  const [isClothing, setIsClothing] = useState(false);
+  const [variants, setVariants] = useState([]); 
+
   // --- LEBENSMITTEL DATEN (LMIV) ---
   const [ingredients, setIngredients] = useState('');
   const [nutrition, setNutrition] = useState('');
@@ -39,7 +43,7 @@ const AdminProductEdit = () => {
   const [isPromotion, setIsPromotion] = useState(false);
   const [promotionLabel, setPromotionLabel] = useState('');
   const [oldPrice, setOldPrice] = useState(0);
-  const [deliveryType, setDeliveryType] = useState('all'); // 'all' oder 'local'
+  const [deliveryType, setDeliveryType] = useState('all'); 
 
   // Trust Badges
   const [warranty, setWarranty] = useState('100% Original-Ware');
@@ -49,26 +53,27 @@ const AdminProductEdit = () => {
   const [uploading, setUploading] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
 
-  const categories = ["Lebensmittel", "Trockenfrüchte", "Getränke", "Süssigkeiten", "Frische Lebensmittel"];
+  const categories = ["Lebensmittel", "Trockenfrüchte", "Getränke", "Süssigkeiten", "Frische Lebensmittel", "Kleidung"];
   const units = ["g", "kg", "ml", "L", "Stk", "Packung", "Glas"];
 
-  // AUTO-LOGIK FÜR BRAUNAU & FRISCHE
+  // AUTO-LOGIK
   useEffect(() => {
     const currentCat = newCategory.trim() !== "" ? newCategory : category;
     const foodKeywords = ["lebensmittel", "getränk", "frucht", "süss", "frisch", "essen", "food", "drink", "trockenfrüchte"];
     const isFood = foodKeywords.some(keyword => currentCat.toLowerCase().includes(keyword));
 
-    // Wenn Frische Lebensmittel ODER schwerer als 4.99kg
     if (currentCat === "Frische Lebensmittel" || (unit === 'kg' && Number(unitSize) >= 5)) {
       setDeliveryType('local');
     }
 
-    if (isFood) {
+    if (currentCat.toLowerCase() === "kleidung") {
+        setIsClothing(true);
+        setWarranty('Gesetzliche Gewährleistung');
+        setReturnPolicy('14 Tage Rückgaberecht');
+    } else if (isFood) {
+      setIsClothing(false); // Kleidung aus, wenn Lebensmittel gewählt
       setWarranty('100% Original-Ware');
       setReturnPolicy('Kein Umtausch (Lebensmittel)');
-    } else {
-      setWarranty('2 Jahre Garantie');
-      setReturnPolicy('30 Tage Rückgabe');
     }
   }, [category, newCategory, unit, unitSize]);
 
@@ -95,14 +100,11 @@ const AdminProductEdit = () => {
           setIngredients(data.ingredients || '');
           setNutrition(data.nutrition || '');
           setUnit(data.unit || 'g');
-          
-          const loadedWeight = data.unitSize || data.weight || '';
-          setUnitSize(loadedWeight !== '' ? Number(loadedWeight) : ''); 
-
+          setUnitSize(data.unitSize || data.weight || ''); 
           setIsBundle(data.isBundle || false);
           setBundleItems(Array.isArray(data.bundleItems) ? data.bundleItems : []); 
-          if(data.warranty) setWarranty(data.warranty);
-          if(data.returnPolicy) setReturnPolicy(data.returnPolicy);
+          setWarranty(data.warranty || '');
+          setReturnPolicy(data.returnPolicy || '');
           setShippingInfo(data.shippingInfo || 'Standard Versand');
           setIsPromotion(data.isPromotion || false);
           setPromotionLabel(data.promotionLabel || '');
@@ -110,11 +112,26 @@ const AdminProductEdit = () => {
           setDeliveryType(data.deliveryType || 'all');
           setIsDeposit(data.isDeposit === true);
           setDepositValue(data.depositValue || 0);
+          setIsClothing(data.isClothing || false);
+          setVariants(data.variants || []);
         } catch (err) { console.error("Fehler beim Laden:", err); }
       };
       fetchProduct();
     }
   }, [id]);
+
+  // VARIANTEN FUNKTIONEN
+  const addVariant = () => {
+    setVariants([...variants, { size: '', color: '', countInStock: 0 }]);
+  };
+  const removeVariant = (index) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+  const handleVariantChange = (index, field, value) => {
+    const newVariants = [...variants];
+    newVariants[index][field] = field === 'countInStock' ? Number(value) : value;
+    setVariants(newVariants);
+  };
 
   const calculateBundleTotal = () => {
     return bundleItems.reduce((sum, item) => {
@@ -123,6 +140,7 @@ const AdminProductEdit = () => {
     }, 0);
   };
 
+  // Suche für Bundles
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setSearchResults([]);
@@ -183,6 +201,11 @@ const AdminProductEdit = () => {
     setLoadingSave(true);
     const finalCategory = newCategory.trim() !== "" ? newCategory : category;
     
+    // Automatische Berechnung des Bestands bei Kleidung
+    const totalStock = isClothing 
+        ? variants.reduce((acc, v) => acc + Number(v.countInStock || 0), 0) 
+        : Number(countInStock);
+
     try {
       const productData = {
         name, 
@@ -191,11 +214,11 @@ const AdminProductEdit = () => {
         images,
         category: finalCategory, 
         brand, 
-        countInStock: Number(countInStock),
+        countInStock: totalStock,
         description, 
-        ingredients, 
-        nutrition, 
-        unit,               
+        ingredients: isClothing ? '' : ingredients, 
+        nutrition: isClothing ? '' : nutrition, 
+        unit: isClothing ? 'Stk' : unit,               
         weight: Number(unitSize), 
         unitSize: Number(unitSize), 
         isBundle, 
@@ -209,27 +232,32 @@ const AdminProductEdit = () => {
         deliveryType, 
         isDeposit: Boolean(isDeposit),
         depositValue: Number(depositValue),
-        isFresh: finalCategory === "Frische Lebensmittel" || deliveryType === 'local'
+        isFresh: finalCategory === "Frische Lebensmittel" || deliveryType === 'local',
+        isClothing,
+        variants: isClothing ? variants : []
       };
 
-      if (id) { await api.put(`/products/${id}`, productData); } 
-      else { await api.post('/products', productData); }
+      if (id) { 
+        await api.put(`/products/${id}`, productData); 
+      } else { 
+        await api.post('/products', productData); 
+      }
       navigate('/admin/products');
     } catch (err) {
       alert(err.response?.data?.message || 'Fehler beim Speichern');
     } finally { setLoadingSave(false); }
   };
 
-  const showDepositOption = category === 'Getränke' || newCategory.toLowerCase().includes('getränk') || newCategory.toLowerCase().includes('drink');
+  const showDepositOption = category === 'Getränke' || newCategory.toLowerCase().includes('getränk');
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 font-sans bg-slate-50 min-h-screen selection:bg-cyan-100">
+    <div className="max-w-7xl mx-auto px-6 py-12 font-sans bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center mb-12">
         <div className="flex items-center gap-6">
           <button type="button" onClick={() => navigate('/admin/products')} className="bg-white w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-cyan-500 hover:text-white transition-all shadow-sm border border-slate-200 group">
             <span className="text-xl group-hover:-translate-x-1 transition-transform">←</span>
           </button>
-          <div>
+          <div className="text-left">
             <p className="text-[10px] font-black uppercase text-cyan-500 tracking-[0.3em] mb-1 italic">Produkt Management</p>
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">
               {id ? 'Produkt' : 'Neue'} <span className="text-cyan-500">Edition</span>
@@ -237,27 +265,29 @@ const AdminProductEdit = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-           <span className={`text-[10px] font-black uppercase ${isBundle ? 'text-cyan-500' : 'text-slate-400'}`}>Set / Bundle</span>
-           <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked={isBundle} onChange={(e) => setIsBundle(e.target.checked)} className="sr-only peer" />
-              <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-cyan-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-           </label>
+        <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+                <span className={`text-[10px] font-black uppercase ${isClothing ? 'text-indigo-500' : 'text-slate-400'}`}>👗 Kleidung</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={isClothing} onChange={(e) => setIsClothing(e.target.checked)} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-indigo-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+            </div>
         </div>
       </div>
 
-      <form onSubmit={submitHandler} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <form onSubmit={submitHandler} className="grid grid-cols-1 lg:grid-cols-12 gap-10 text-left">
         <div className="lg:col-span-8 space-y-8">
           
+          {/* BUNDLE SEKTION */}
           {isBundle && (
-            <div className="bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl space-y-8 border-b-8 border-cyan-500 animate-fadeIn relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10"><span className="text-9xl">🎁</span></div>
+            <div className="bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl space-y-8 border-b-8 border-cyan-500 relative overflow-hidden animate-in fade-in zoom-in duration-300">
                 <div className="flex justify-between items-end relative z-10">
                     <div className="flex items-center gap-5">
                         <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg">🎁</div>
                         <div>
-                            <h3 className="text-white text-2xl font-black uppercase tracking-tighter">Bundle Inhalt</h3>
-                            <p className="text-cyan-400 text-[10px] font-bold uppercase tracking-widest">Kombiniere mehrere Artikel</p>
+                            <h3 className="text-white text-2xl font-black uppercase tracking-tighter leading-none">Bundle Inhalt</h3>
+                            <p className="text-cyan-400 text-[10px] font-bold uppercase tracking-widest mt-1">Kombiniere mehrere Artikel</p>
                         </div>
                     </div>
                     <div className="bg-cyan-500/10 border border-cyan-500/30 px-6 py-3 rounded-2xl text-right">
@@ -265,7 +295,8 @@ const AdminProductEdit = () => {
                         <p className="text-3xl font-black text-white">{calculateBundleTotal().toFixed(2)} €</p>
                     </div>
                 </div>
-                <input type="text" placeholder="Produkt zum Set hinzufügen..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-700 p-6 rounded-3xl text-white outline-none focus:border-cyan-400 font-bold text-lg placeholder:text-slate-500" />
+                <input type="text" placeholder="Produkt zum Set hinzufügen..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-700 p-6 rounded-3xl text-white outline-none focus:border-cyan-400 font-bold text-lg" />
+                
                 {searchResults.length > 0 && (
                     <div className="absolute left-10 right-10 bg-white rounded-3xl shadow-2xl mt-[-20px] overflow-hidden z-50 border border-slate-200">
                         {searchResults.map(p => (
@@ -276,6 +307,7 @@ const AdminProductEdit = () => {
                         ))}
                     </div>
                 )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                     {bundleItems.map((item, index) => (
                         <div key={index} className="flex items-center justify-between bg-slate-800/40 p-5 rounded-3xl border border-slate-700/50 group">
@@ -294,158 +326,136 @@ const AdminProductEdit = () => {
             </div>
           )}
 
-          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
+          {/* KLEIDUNGS VARIANTEN */}
+          {isClothing && (
+            <div className="bg-white p-10 rounded-[3.5rem] border-2 border-indigo-100 shadow-xl space-y-6 animate-in slide-in-from-top duration-500">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-2xl shadow-lg">👔</div>
+                <div>
+                  <h3 className="text-indigo-900 text-xl font-black uppercase tracking-tighter leading-none">Größen & Farben</h3>
+                  <p className="text-indigo-400 text-[10px] font-bold uppercase tracking-widest italic mt-1">Bestandsverwaltung pro Variante</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {variants.map((variant, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100 group relative">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-indigo-400 ml-2">Größe</label>
+                      <input type="text" value={variant.size} placeholder="z.B. XL" onChange={(e) => handleVariantChange(index, 'size', e.target.value)} className="w-full bg-white p-3 rounded-xl border-none font-bold text-slate-800 shadow-sm focus:ring-2 ring-indigo-500 outline-none" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-indigo-400 ml-2">Farbe</label>
+                      <input type="text" value={variant.color} placeholder="Blau" onChange={(e) => handleVariantChange(index, 'color', e.target.value)} className="w-full bg-white p-3 rounded-xl border-none font-bold text-slate-800 shadow-sm focus:ring-2 ring-indigo-500 outline-none" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-indigo-400 ml-2">Lager</label>
+                      <input type="number" value={variant.countInStock} onChange={(e) => handleVariantChange(index, 'countInStock', e.target.value)} className="w-full bg-white p-3 rounded-xl border-none font-black text-indigo-600 shadow-sm focus:ring-2 ring-indigo-500 outline-none" />
+                    </div>
+                    <div className="flex items-end">
+                      <button type="button" onClick={() => removeVariant(index)} className="w-full bg-white text-rose-500 py-3 rounded-xl font-black text-[10px] uppercase hover:bg-rose-500 hover:text-white transition-all shadow-sm">Entfernen</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button type="button" onClick={addVariant} className="w-full border-2 border-indigo-200 border-dashed p-5 rounded-[2rem] text-indigo-500 font-black text-[10px] uppercase tracking-widest hover:bg-indigo-50 hover:border-indigo-500 transition-all">
+                + Neue Variante hinzufügen
+              </button>
+            </div>
+          )}
+
+          {/* HAUPT DATEN */}
+          <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Produktbezeichnung</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Name des Produkts</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-2xl focus:border-cyan-500 focus:bg-white transition-all outline-none font-bold text-slate-800" required />
               </div>
               <div className="space-y-4 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Kategorie & Logistik</label>
-                  <select value={category} onChange={(e) => { setCategory(e.target.value); setNewCategory(''); }} className="w-full bg-white border-2 border-transparent p-4 rounded-2xl focus:border-cyan-500 transition-all outline-none font-bold text-slate-800">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Kategorie</label>
+                  <select value={category} onChange={(e) => { setCategory(e.target.value); setNewCategory(''); }} className="w-full bg-white border-2 border-transparent p-4 rounded-2xl focus:border-cyan-500 outline-none font-bold text-slate-800">
                     <option value="">Wählen...</option>
                     {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
-                {/* LIEFER-OPTION AKTIVIERT */}
-                <select 
-                    value={deliveryType} 
-                    onChange={(e) => setDeliveryType(e.target.value)} 
-                    className={`w-full border-2 p-4 rounded-2xl outline-none font-black text-[10px] uppercase tracking-widest transition-all ${deliveryType === 'local' ? 'bg-cyan-500 text-white border-transparent' : 'bg-white border-cyan-100 text-cyan-600'}`}
-                >
-                    <option value="all">📦 Post-Versand (Überall)</option>
-                    <option value="local">🏠 Nur Braunau & Umgebung</option>
-                </select>
                 <input type="text" placeholder="Eigene Kategorie..." value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full bg-white border-2 border-cyan-100 p-4 rounded-2xl focus:border-cyan-500 outline-none font-black text-[10px] uppercase text-cyan-600 tracking-widest placeholder:text-cyan-200" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Produkt-Story / Beschreibung</label>
+              <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Beschreibung</label>
               <textarea rows="4" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-2xl focus:border-cyan-500 focus:bg-white transition-all outline-none font-medium text-slate-700"></textarea>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 bg-cyan-50/30 rounded-[2.5rem] border border-cyan-100/50">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-cyan-600 ml-1 tracking-widest italic">Zutatenliste</label>
-                <textarea rows="3" value={ingredients} onChange={(e) => setIngredients(e.target.value)} placeholder="z.B. Rosinen, Sonnenblumenöl..." className="w-full bg-white border-2 border-transparent p-4 rounded-2xl focus:border-cyan-500 outline-none text-sm font-medium text-slate-700 shadow-sm"></textarea>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-cyan-600 ml-1 tracking-widest italic">Nährwertangaben</label>
-                <textarea rows="3" value={nutrition} onChange={(e) => setNutrition(e.target.value)} placeholder="Energie: 120kcal&#10;Fett: 2g..." className="w-full bg-white border-2 border-transparent p-4 rounded-2xl focus:border-cyan-500 outline-none text-sm font-medium text-slate-700 shadow-sm"></textarea>
-              </div>
-            </div>
-
-            <div className="bg-rose-50 p-8 rounded-[2.5rem] border border-rose-100 space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[11px] font-black text-rose-600 uppercase tracking-widest italic">🔥 Aktions-Steuerung</h3>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" checked={isPromotion} onChange={(e) => setIsPromotion(e.target.checked)} className="sr-only peer" />
-                  <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-rose-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all shadow-inner"></div>
-                </label>
-              </div>
-              {isPromotion && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
-                  <input type="text" value={promotionLabel} onChange={(e) => setPromotionLabel(e.target.value)} className="w-full bg-white border-2 border-rose-200 p-4 rounded-2xl font-black text-rose-600 outline-none focus:border-rose-500" placeholder="Aktions-Label" />
-                  <input type="number" step="0.01" value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} className="w-full bg-white border-2 border-rose-200 p-4 rounded-2xl font-black text-slate-400 line-through outline-none focus:border-rose-500" placeholder="Streichpreis" />
+            {!isClothing && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 bg-cyan-50/30 rounded-[2.5rem] border border-cyan-100/50">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-cyan-600 ml-1 tracking-widest italic">Zutaten</label>
+                        <textarea rows="3" value={ingredients} onChange={(e) => setIngredients(e.target.value)} placeholder="z.B. Mandeln..." className="w-full bg-white p-4 rounded-2xl text-sm font-medium text-slate-700 shadow-sm border-none"></textarea>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-cyan-600 ml-1 tracking-widest italic">Nährwerte</label>
+                        <textarea rows="3" value={nutrition} onChange={(e) => setNutrition(e.target.value)} placeholder="Pro 100g..." className="w-full bg-white p-4 rounded-2xl text-sm font-medium text-slate-700 shadow-sm border-none"></textarea>
+                    </div>
                 </div>
-              )}
-            </div>
-
-            {showDepositOption && (
-              <div className="bg-orange-50 p-8 rounded-[2.5rem] border border-orange-100 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest italic">🥤 Pfand-Management</h3>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={isDeposit} onChange={(e) => setIsDeposit(e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-orange-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                  </label>
-                </div>
-                {isDeposit && (
-                  <input type="number" step="0.01" value={depositValue} onChange={(e) => setDepositValue(e.target.value)} className="w-full bg-white border-2 border-orange-200 p-4 rounded-2xl font-black text-orange-600 outline-none" placeholder="0.25" />
-                )}
-              </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Verkaufspreis (€)</label>
-                <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className={`w-full border-2 border-transparent p-6 rounded-3xl focus:border-cyan-500 transition-all outline-none font-black text-4xl shadow-inner ${isPromotion ? 'bg-rose-50 text-rose-600' : 'bg-cyan-50 text-cyan-600'}`} required />
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Preis (€)</label>
+                <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-cyan-50 p-6 rounded-3xl outline-none font-black text-4xl text-cyan-600 shadow-inner border-none" required />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Bestand</label>
-                <input type="number" value={countInStock} onChange={(e) => setCountInStock(e.target.value)} className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-3xl outline-none font-black text-slate-900 text-2xl shadow-inner" required />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Basiseinheit</label>
-                <select value={unit} onChange={(e) => setUnit(e.target.value)} className="w-full bg-white border-2 border-transparent p-4 rounded-2xl outline-none font-black text-slate-800 focus:border-cyan-500 shadow-sm transition-all">
-                  {units.map(u => <option key={u} value={u}>{u}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className={`text-[10px] font-black uppercase ml-1 italic tracking-widest ${unit === 'kg' && Number(unitSize) >= 5 ? 'text-rose-500 underline decoration-rose-200' : 'text-cyan-600'}`}>Netto-Inhalt (Nur Zahl!)</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Gesamtbestand</label>
                 <input 
-                  type="number" 
-                  value={unitSize} 
-                  onChange={(e) => setUnitSize(e.target.value === '' ? '' : Number(e.target.value))} 
-                  className={`w-full bg-white border-2 p-4 rounded-2xl outline-none font-black text-lg text-slate-800 focus:border-cyan-500 shadow-sm transition-all ${unit === 'kg' && Number(unitSize) >= 5 ? 'border-rose-200' : 'border-cyan-100'}`} 
-                  placeholder="z.B. 500" 
+                    type="number" 
+                    value={isClothing ? variants.reduce((acc, v) => acc + Number(v.countInStock || 0), 0) : countInStock} 
+                    onChange={(e) => setCountInStock(e.target.value)} 
+                    className={`w-full p-6 rounded-3xl outline-none font-black text-slate-900 text-2xl shadow-inner border-none ${isClothing ? 'bg-slate-200 cursor-not-allowed text-slate-400' : 'bg-slate-50'}`} 
+                    readOnly={isClothing} 
+                    required 
                 />
               </div>
             </div>
           </div>
         </div>
 
+        {/* SIDEBAR */}
         <div className="lg:col-span-4 space-y-8">
           <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6 ml-2 italic underline decoration-cyan-200 underline-offset-4">Bilder</h3>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6 ml-2 italic">Bilder</h3>
+            <div className="grid grid-cols-2 gap-3">
               {images.map((img, index) => (
-                <div key={index} className="relative aspect-square bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 group shadow-sm">
-                  <img src={img.startsWith('http') ? img : `http://localhost:5001${img}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Produkt" />
-                  <button type="button" onClick={() => removeImage(index)} className="absolute inset-0 bg-rose-500/80 text-white font-black text-xs opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-sm">ENTFERNEN</button>
+                <div key={index} className="relative aspect-square bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 group">
+                  <img src={img.startsWith('http') ? img : `https://afghanshop-backend.onrender.com${img}`} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" alt="Vorschau" />
+                  <button type="button" onClick={() => removeImage(index)} className="absolute inset-0 bg-rose-500/80 text-white font-black text-[10px] opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">LÖSCHEN</button>
                 </div>
               ))}
-              <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-cyan-400 hover:bg-cyan-50 transition-all group shadow-inner">
-                <span className="text-3xl group-hover:scale-110 transition-transform">📸</span>
+              <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-cyan-400 transition-all group">
+                <span className="text-2xl group-hover:scale-110 transition-transform">📸</span>
                 <input type="file" multiple onChange={uploadFileHandler} className="hidden" />
               </label>
             </div>
           </div>
 
-          <div className={`p-10 rounded-[3.5rem] text-white shadow-2xl border-b-8 sticky top-10 transition-all duration-500 ${deliveryType === 'local' ? 'bg-cyan-600 border-cyan-800' : (isPromotion ? 'bg-rose-600 border-rose-900' : 'bg-slate-900 border-cyan-500')}`}>
-            <p className="text-[9px] font-black text-cyan-400 uppercase mb-5 tracking-[0.3em] italic">Vorschau & Logistik</p>
-            <h4 className="text-2xl font-black uppercase tracking-tighter mb-2 truncate leading-none">{name || 'Produktname'}</h4>
-            <div className="flex flex-col gap-1 mb-10">
-              <p className="text-5xl font-black text-white">{Number(price).toFixed(2)}€</p>
-              <div className="flex flex-col gap-1 mt-2">
-                <p className="text-[10px] text-cyan-300 font-black uppercase tracking-widest">
-                  {unitSize !== '' ? `${unitSize}${unit} Netto` : 'Keine Mengenangabe'}
-                </p>
-                <p className={`text-[10px] font-black uppercase flex items-center gap-2 ${deliveryType === 'local' ? 'text-amber-300' : 'text-emerald-400'}`}>
-                   <span className={`w-2 h-2 rounded-full ${deliveryType === 'local' ? 'bg-amber-300 animate-pulse' : 'bg-emerald-400'}`}></span>
-                   {deliveryType === 'local' ? 'Nur Braunau Lieferung' : 'DHL / Post Versand'}
-                </p>
-              </div>
-            </div>
+          <div className={`p-10 rounded-[3.5rem] text-white shadow-2xl border-b-8 sticky top-10 transition-all duration-500 ${isClothing ? 'bg-indigo-600 border-indigo-900' : 'bg-slate-900 border-cyan-500'}`}>
+            <h4 className="text-2xl font-black uppercase tracking-tighter mb-2 truncate leading-none">{name || 'Produkt'}</h4>
+            <p className="text-4xl font-black mb-10">{Number(price).toFixed(2)}€</p>
             
             <button 
-                type="button" 
-                onClick={submitHandler} 
-                disabled={loadingSave || uploading} 
-                className="w-full bg-white text-slate-900 py-6 rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-cyan-400 hover:text-white transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                type="submit" 
+                disabled={loadingSave}
+                className={`w-full py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl transition-all active:scale-95 ${loadingSave ? 'bg-slate-700 animate-pulse' : 'bg-white text-slate-900 hover:bg-cyan-400 hover:text-white'}`}
             >
-              {loadingSave ? 'SPEICHERT...' : 'VERÖFFENTLICHEN'}
+              {loadingSave ? 'Speichert...' : 'Produkt Speichern'}
             </button>
           </div>
         </div>
       </form>
     </div>
   );
-};
+}
 
 export default AdminProductEdit;

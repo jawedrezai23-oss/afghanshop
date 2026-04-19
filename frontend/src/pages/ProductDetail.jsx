@@ -10,12 +10,21 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  // --- NEU: STATE FÜR GEWÄHLTE VARIANTE ---
+  const [selectedVariant, setSelectedVariant] = useState(null);
+
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
         const { data } = await api.get(`/products/${id}`);
         setProduct(data);
+        
+        // Wenn es Kleidung ist und Varianten hat, wähle die erste automatisch vor
+        if (data.isClothing && data.variants && data.variants.length > 0) {
+          setSelectedVariant(data.variants[0]);
+        }
+        
         setLoading(false);
       } catch (err) {
         console.error("Fehler beim Laden des Produkts:", err);
@@ -26,30 +35,47 @@ export default function ProductDetail() {
   }, [id]);
 
   const addToCartHandler = () => {
+    // Validierung für Kleidung
+    if (product.isClothing && !selectedVariant) {
+      alert("Bitte wähle eine Größe/Farbe aus!");
+      return;
+    }
+
     const cartItems = JSON.parse(localStorage.getItem('cartItems')) || [];
-    const existItem = cartItems.find(x => x._id === product._id);
+    
+    // Eindeutige ID für den Warenkorb (ProduktID + Varianten-Info)
+    const cartId = product.isClothing 
+      ? `${product._id}-${selectedVariant.size}-${selectedVariant.color}`
+      : product._id;
+
+    const existItem = cartItems.find(x => x.cartId === cartId);
     
     const pureWeight = product.weight ? parseFloat(String(product.weight).replace(/[^\d.]/g, '')) : 0;
 
     const itemToAdd = {
       _id: product._id,
+      cartId: cartId, // Wichtig für Varianten-Trennung im Warenkorb
       name: product.name,
       image: getOptimizedImage(product.image, 200),
       price: product.price,
       qty: Number(qty),
-      countInStock: product.countInStock,
+      countInStock: product.isClothing ? selectedVariant.countInStock : product.countInStock,
       unit: product.unit || 'g',
       weight: pureWeight, 
       isDeposit: product.isDeposit,
       depositValue: product.depositValue,
-      pricePerKg: pureWeight > 0 ? ((product.price / pureWeight) * 1000).toFixed(2) : null
+      pricePerKg: pureWeight > 0 ? ((product.price / pureWeight) * 1000).toFixed(2) : null,
+      // Varianten-Details mitschicken
+      variant: product.isClothing ? { size: selectedVariant.size, color: selectedVariant.color } : null
     };
 
     if (existItem) {
-      existItem.qty = Math.min(Number(existItem.qty) + Number(qty), product.countInStock);
+      const maxStock = product.isClothing ? selectedVariant.countInStock : product.countInStock;
+      existItem.qty = Math.min(Number(existItem.qty) + Number(qty), maxStock);
     } else {
       cartItems.push(itemToAdd);
     }
+    
     localStorage.setItem('cartItems', JSON.stringify(cartItems));
     window.dispatchEvent(new Event("cart-updated"));
     navigate('/cart');
@@ -77,18 +103,10 @@ export default function ProductDetail() {
     ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
     : 0;
 
-  const renderBasePrice = () => {
-    const pureWeight = product.weight ? parseFloat(String(product.weight).replace(/[^\d.]/g, '')) : 0;
-    if (pureWeight > 0) {
-      const pricePerKg = (product.price / pureWeight) * 1000;
-      return (
-        <span className="text-[10px] md:text-[11px] font-bold text-slate-400 block mt-1 uppercase tracking-tight italic">
-          Grundpreis: {pricePerKg.toFixed(2)}€ / kg
-        </span>
-      );
-    }
-    return null;
-  };
+  // Prüfen ob die aktuell gewählte Variante vorrätig ist
+  const currentInStock = product.isClothing 
+    ? (selectedVariant ? selectedVariant.countInStock : 0)
+    : product.countInStock;
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans py-6 md:py-12 px-4 md:px-6 selection:bg-cyan-100">
@@ -126,12 +144,12 @@ export default function ProductDetail() {
           {/* INFO-BEREICH */}
           <div className="flex flex-col">
             <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-4 md:mb-6">
-              <span className="text-cyan-600 font-black uppercase tracking-widest text-[9px] md:text-[10px] bg-cyan-50 px-4 py-1.5 rounded-full border border-cyan-100">
+              <span className={`font-black uppercase tracking-widest text-[9px] md:text-[10px] px-4 py-1.5 rounded-full border ${product.isClothing ? 'text-indigo-600 bg-indigo-50 border-indigo-100' : 'text-cyan-600 bg-cyan-50 border-cyan-100'}`}>
                 {product.category || 'Spezialität'}
               </span>
-              {product.countInStock > 0 ? (
+              {currentInStock > 0 ? (
                 <span className="text-emerald-600 font-black uppercase tracking-widest text-[9px] md:text-[10px] bg-emerald-50 px-4 py-1.5 rounded-full border border-emerald-100">
-                  Auf Lager
+                  {product.isClothing ? 'Größe verfügbar' : 'Auf Lager'}
                 </span>
               ) : (
                 <span className="text-rose-600 font-black uppercase tracking-widest text-[9px] md:text-[10px] bg-rose-50 px-4 py-1.5 rounded-full border border-rose-100">
@@ -148,8 +166,32 @@ export default function ProductDetail() {
               {product.description}
             </p>
 
+            {/* --- NEU: VARIANTEN AUSWAHL FÜR KLEIDUNG --- */}
+            {product.isClothing && product.variants && product.variants.length > 0 && (
+              <div className="mb-8 p-6 bg-white rounded-[2rem] border border-indigo-100 shadow-sm">
+                <h3 className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.2em] mb-4 italic">Verfügbare Varianten:</h3>
+                <div className="flex flex-wrap gap-3">
+                  {product.variants.map((v, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedVariant(v)}
+                      className={`px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border-2 
+                        ${selectedVariant === v 
+                          ? 'border-indigo-600 bg-indigo-600 text-white shadow-lg scale-105' 
+                          : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-indigo-200'}`}
+                    >
+                      {v.size} {v.color && `- ${v.color}`}
+                      <span className="block text-[8px] opacity-60 mt-1">
+                        {v.countInStock > 0 ? `${v.countInStock} Stk.` : 'Leer'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* PREIS-CARD */}
-            <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-xl mb-8 md:mb-12">
+            <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-xl mb-8 md:mb-12">
               <div className="flex justify-between items-end mb-6 md:mb-10">
                 <div className="flex flex-col w-full">
                   <span className="text-[9px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1 italic">
@@ -162,41 +204,50 @@ export default function ProductDetail() {
 
                     <div className="text-right">
                       <span className="text-lg md:text-xl font-black text-slate-900 uppercase">
-                        {product.weight && (
+                        {!product.isClothing && product.weight && (
                           <span>
                             {String(product.weight).replace(/[^\d.]/g, '')}{product.unit || 'g'}
                           </span>
                         )}
+                        {product.isClothing && selectedVariant && (
+                          <span className="text-indigo-600">
+                            Größe {selectedVariant.size}
+                          </span>
+                        )}
                       </span>
-                      {renderBasePrice()}
+                      {!product.isClothing && (
+                        <span className="text-[10px] md:text-[11px] font-bold text-slate-400 block mt-1 uppercase tracking-tight italic">
+                          {product.weight ? `Grundpreis: ${((product.price / parseFloat(String(product.weight).replace(/[^\d.]/g, ''))) * 1000).toFixed(2)}€ / kg` : ''}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {product.countInStock > 0 ? (
+              {currentInStock > 0 ? (
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex items-center justify-between bg-slate-50 p-1.5 rounded-xl border border-slate-100">
                     <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-10 h-10 font-black text-lg hover:bg-white rounded-lg transition-all">−</button>
                     <span className="font-black w-8 text-center">{qty}</span>
-                    <button onClick={() => setQty(Math.min(product.countInStock, qty + 1))} className="w-10 h-10 font-black text-lg hover:bg-white rounded-lg transition-all">+</button>
+                    <button onClick={() => setQty(Math.min(currentInStock, qty + 1))} className="w-10 h-10 font-black text-lg hover:bg-white rounded-lg transition-all">+</button>
                   </div>
                   <button
                     onClick={addToCartHandler}
-                    className="flex-grow py-4 md:py-5 bg-cyan-600 text-white rounded-xl md:rounded-2xl font-black uppercase text-[10px] md:text-xs tracking-[0.2em] hover:bg-slate-900 transition-all shadow-lg active:scale-95"
+                    className={`flex-grow py-4 md:py-5 text-white rounded-xl md:rounded-2xl font-black uppercase text-[10px] md:text-xs tracking-[0.2em] transition-all shadow-lg active:scale-95 ${product.isClothing ? 'bg-indigo-600 hover:bg-slate-900' : 'bg-cyan-600 hover:bg-slate-900'}`}
                   >
                     In den Warenkorb
                   </button>
                 </div>
               ) : (
                 <div className="w-full bg-slate-50 text-slate-400 py-4 rounded-xl font-black uppercase text-[10px] text-center border-2 border-dashed border-slate-200">
-                  Nicht vorrätig
+                  {product.isClothing ? 'Diese Variante ist ausverkauft' : 'Nicht vorrätig'}
                 </div>
               )}
             </div>
 
-            {/* ZUTATEN / NÄHRWERTE */}
-            {(product.ingredients || product.nutrition) && (
+            {/* ZUTATEN / NÄHRWERTE (Nur für Lebensmittel) */}
+            {!product.isClothing && (product.ingredients || product.nutrition) && (
               <div className="mb-8 space-y-4">
                 {product.ingredients && (
                   <div className="p-5 md:p-8 bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100">
@@ -219,8 +270,8 @@ export default function ProductDetail() {
             <div className="grid grid-cols-3 gap-3 md:gap-6">
               {[
                 { i: '🚚', t: 'Versand', v: product.shippingInfo || 'Standard' },
-                { i: '💎', t: 'Qualität', v: 'Selektiert' },
-                { i: '⚠️', t: 'Info', v: 'Lebensmittel' }
+                { i: '💎', t: 'Qualität', v: product.isClothing ? 'Premium Textil' : 'Selektiert' },
+                { i: '🔄', t: 'Rückgabe', v: product.isClothing ? '14 Tage' : 'Kein Umtausch' }
               ].map((item, idx) => (
                 <div key={idx} className="bg-white p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 text-center shadow-sm">
                   <span className="text-xl md:text-2xl block mb-1">{item.i}</span>

@@ -1,5 +1,19 @@
 import mongoose from 'mongoose';
 
+// Hilfs-Schema für die Kleidungsvarianten
+const variantSchema = mongoose.Schema({
+  size: { type: String, required: true },
+  color: { type: String, required: true },
+  countInStock: { type: Number, required: true, default: 0 },
+});
+
+// Hilfs-Schema für Bundle-Artikel (bessere Struktur als 'Mixed')
+const bundleItemSchema = mongoose.Schema({
+  product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+  name: { type: String },
+  qty: { type: Number, default: 1 }
+});
+
 const productSchema = mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, required: true, ref: 'User' },
@@ -18,13 +32,18 @@ const productSchema = mongoose.Schema(
     sold: { type: Number, default: 0 },
     revenue: { type: Number, default: 0 },
     
+    // --- NEU: KLEIDUNGS-LOGIK ---
+    isClothing: { type: Boolean, default: false },
+    variants: [variantSchema], // Speichert Array von {size, color, countInStock}
+
     // --- GEWICHTS-LOGIK ---
     unit: { type: String, default: 'g' },     
     unitSize: { type: String, default: '' }, 
-    weight: { type: Number, default: 0 }, // Nur die Zahl! (z.B. 500)
+    weight: { type: Number, default: 0 },
 
+    // --- WEITERE OPTIONEN ---
     isBundle: { type: Boolean, default: false },
-    bundleItems: { type: mongoose.Schema.Types.Mixed }, 
+    bundleItems: [bundleItemSchema], 
     warranty: { type: String, default: '' },
     returnPolicy: { type: String, default: 'Kein Umtausch bei Lebensmitteln' },
     shippingInfo: { type: String, default: 'Standardversand' },
@@ -34,6 +53,7 @@ const productSchema = mongoose.Schema(
     deliveryType: { type: String, default: 'all' },
     isDeposit: { type: Boolean, default: false },
     depositValue: { type: Number, default: 0 },
+    isFresh: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
