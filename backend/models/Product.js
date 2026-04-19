@@ -1,13 +1,11 @@
 import mongoose from 'mongoose';
 
-// Hilfs-Schema für die Kleidungsvarianten
 const variantSchema = mongoose.Schema({
-  size: { type: String, required: true },
-  color: { type: String, required: true },
-  countInStock: { type: Number, required: true, default: 0 },
+  size: { type: String, default: '' },
+  color: { type: String, default: '' },
+  countInStock: { type: Number, default: 0 },
 });
 
-// Hilfs-Schema für Bundle-Artikel (bessere Struktur als 'Mixed')
 const bundleItemSchema = mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
   name: { type: String },
@@ -32,16 +30,14 @@ const productSchema = mongoose.Schema(
     sold: { type: Number, default: 0 },
     revenue: { type: Number, default: 0 },
     
-    // --- NEU: KLEIDUNGS-LOGIK ---
+    // Kleidung & Varianten
     isClothing: { type: Boolean, default: false },
-    variants: [variantSchema], // Speichert Array von {size, color, countInStock}
+    variants: [variantSchema],
 
-    // --- GEWICHTS-LOGIK ---
     unit: { type: String, default: 'g' },     
     unitSize: { type: String, default: '' }, 
     weight: { type: Number, default: 0 },
 
-    // --- WEITERE OPTIONEN ---
     isBundle: { type: Boolean, default: false },
     bundleItems: [bundleItemSchema], 
     warranty: { type: String, default: '' },

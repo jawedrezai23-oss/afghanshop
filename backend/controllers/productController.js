@@ -3,9 +3,9 @@ import Product from '../models/Product.js';
 // @desc    Alle Produkte abrufen
 export const getProducts = async (req, res) => {
   try {
-    // Kurzer Fix für alte Datenleichen
-    await Product.updateMany({ bundleItems: "" }, { $set: { bundleItems: [] } });
-
+    // Kurzer Fix für alte Datenleichen (Update auf Array Typ)
+    await Product.updateMany({ bundleItems: { $exists: false } }, { $set: { bundleItems: [] } });
+    
     const products = await Product.find({});
     res.json(products);
   } catch (error) {
@@ -55,12 +55,13 @@ export const createProduct = async (req, res) => {
       countInStock: 0,
       numReviews: 0,
       description: 'Beispiel Beschreibung',
-      // NEU Initialisiert:
       ingredients: '',
       nutrition: '',
       weight: 0,
       isBundle: false,
-      bundleItems: []
+      bundleItems: [],
+      isClothing: false,
+      variants: []
     });
 
     const createdProduct = await product.save();
@@ -77,16 +78,14 @@ export const updateProduct = async (req, res) => {
     category, countInStock, unit, unitSize, isBundle,
     bundleItems, warranty, returnPolicy, shippingInfo,
     isPromotion, promotionLabel, oldPrice, deliveryType,
-    isDeposit, depositValue,
-    // NEUE FELDER AUS DEM FRONTEND:
-    ingredients, nutrition, weight 
+    isDeposit, depositValue, ingredients, nutrition, weight,
+    isClothing, variants // <--- NEU VOM FRONTEND
   } = req.body;
 
   try {
     const product = await Product.findById(req.params.id);
 
     if (product) {
-      // Standard Felder
       product.name = name || product.name;
       product.description = description || product.description;
       product.image = image || product.image;
@@ -100,44 +99,39 @@ export const updateProduct = async (req, res) => {
       product.shippingInfo = shippingInfo || product.shippingInfo;
       product.promotionLabel = promotionLabel || product.promotionLabel;
       product.deliveryType = deliveryType || product.deliveryType;
-
-      // NEU: Zuweisung der Lebensmittel-Infos
       product.ingredients = ingredients || product.ingredients;
       product.nutrition = nutrition || product.nutrition;
 
-      // Numerische Felder & Booleans
       product.price = price ?? product.price;
       product.countInStock = countInStock ?? product.countInStock;
       product.oldPrice = oldPrice ?? product.oldPrice;
       product.depositValue = depositValue ?? product.depositValue;
-      
-      // NEU: Gewicht als Zahl für Grundpreis
       product.weight = weight ?? product.weight;
       
       product.isBundle = isBundle ?? product.isBundle;
       product.isPromotion = isPromotion ?? product.isPromotion;
       product.isDeposit = isDeposit ?? product.isDeposit;
 
-      // Bundle Logik
+      // NEUE KLEIDUNGS-LOGIK SPEICHERN
+      product.isClothing = isClothing ?? product.isClothing;
+      product.variants = isClothing ? (variants || product.variants) : [];
+
       if (product.isBundle) {
           product.bundleItems = bundleItems || product.bundleItems;
       } else {
           product.bundleItems = [];
       }
 
-      const updatedProduct = await product.save({ validateBeforeSave: false });
-      
+      const updatedProduct = await product.save();
       res.json(updatedProduct);
     } else {
       res.status(404).json({ message: 'Produkt nicht gefunden' });
     }
   } catch (error) {
-    console.error('BACKEND UPDATE ERROR:', error.message);
     res.status(500).json({ message: 'Update fehlgeschlagen: ' + error.message });
   }
 };
 
-// @desc    Top Produkte
 export const getTopProducts = async (req, res) => {
   try {
     const products = await Product.find({}).sort({ rating: -1 }).limit(3);
