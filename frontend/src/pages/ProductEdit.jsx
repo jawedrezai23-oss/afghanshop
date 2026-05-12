@@ -24,9 +24,9 @@ const AdminProductEdit = () => {
   const [ingredients, setIngredients] = useState('');
   const [nutrition, setNutrition] = useState('');
 
-  // --- PFAND OPTION ---
+  // --- PFAND OPTION (FIX 0.25) ---
   const [isDeposit, setIsDeposit] = useState(false);
-  const [depositValue, setDepositValue] = useState(0);
+  const [depositValue, setDepositValue] = useState(0.25);
 
   // --- EINHEIT & GEWICHT ---
   const [unit, setUnit] = useState('g'); 
@@ -43,8 +43,11 @@ const AdminProductEdit = () => {
   const [isPromotion, setIsPromotion] = useState(false);
   const [promotionLabel, setPromotionLabel] = useState('');
   const [oldPrice, setOldPrice] = useState(0);
-  const [isOnePlusOne, setIsOnePlusOne] = useState(false); // <--- WIEDER DA
+  const [isOnePlusOne, setIsOnePlusOne] = useState(false);
   const [deliveryType, setDeliveryType] = useState('all'); 
+
+  // --- STAFFELPREISE (FEUER STECKER) ---
+  const [tierPrices, setTierPrices] = useState([]); 
 
   // Trust Badges
   const [warranty, setWarranty] = useState('100% Original-Ware');
@@ -110,12 +113,13 @@ const AdminProductEdit = () => {
           setIsPromotion(data.isPromotion || false);
           setPromotionLabel(data.promotionLabel || '');
           setOldPrice(data.oldPrice || 0);
-          setIsOnePlusOne(data.isOnePlusOne || false); // <--- WIEDER DA
+          setIsOnePlusOne(data.isOnePlusOne || false);
           setDeliveryType(data.deliveryType || 'all');
           setIsDeposit(data.isDeposit === true);
-          setDepositValue(data.depositValue || 0);
+          setDepositValue(0.25); // Immer Fix 0.25
           setIsClothing(data.isClothing || false);
           setVariants(data.variants || []);
+          setTierPrices(data.tierPrices || []);
         } catch (err) { console.error("Fehler beim Laden:", err); }
       };
       fetchProduct();
@@ -219,13 +223,14 @@ const AdminProductEdit = () => {
         isPromotion, 
         promotionLabel,
         oldPrice: Number(oldPrice), 
-        isOnePlusOne, // <--- WIEDER DA
+        isOnePlusOne, 
         deliveryType, 
         isDeposit: Boolean(isDeposit),
-        depositValue: Number(depositValue),
+        depositValue: isDeposit ? 0.25 : 0,
         isFresh: finalCategory === "Frische Lebensmittel" || deliveryType === 'local',
         isClothing,
-        variants: isClothing ? variants : []
+        variants: isClothing ? variants : [],
+        tierPrices // Staffelpreise mitsenden
       };
 
       if (id) { await api.put(`/products/${id}`, productData); } 
@@ -262,7 +267,6 @@ const AdminProductEdit = () => {
                     <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-indigo-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                 </label>
             </div>
-            {/* BUNDLE SCHALTER */}
             <div className="flex items-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
                 <span className={`text-[10px] font-black uppercase ${isBundle ? 'text-cyan-500' : 'text-slate-400'}`}>🎁 Bundle</span>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -276,13 +280,13 @@ const AdminProductEdit = () => {
       <form onSubmit={submitHandler} className="grid grid-cols-1 lg:grid-cols-12 gap-10 text-left">
         <div className="lg:col-span-8 space-y-8">
           
-          {/* BUNDLE SEKTION (NUR WENN AKTIV) */}
+          {/* BUNDLE SEKTION */}
           {isBundle && (
-            <div className="bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl space-y-8 border-b-8 border-cyan-500 relative overflow-hidden">
-                <div className="flex justify-between items-end relative z-10">
+            <div className="bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl space-y-8 border-b-8 border-cyan-500 relative overflow-hidden text-left">
+                <div className="flex justify-between items-end relative z-10 text-left">
                     <div className="flex items-center gap-5">
                         <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg">🎁</div>
-                        <h3 className="text-white text-2xl font-black uppercase tracking-tighter">Bundle Inhalt</h3>
+                        <h3 className="text-white text-2xl font-black uppercase tracking-tighter text-left">Bundle Inhalt</h3>
                     </div>
                     <div className="bg-cyan-500/10 border border-cyan-500/30 px-6 py-3 rounded-2xl text-right">
                         <p className="text-3xl font-black text-white">{calculateBundleTotal().toFixed(2)} €</p>
@@ -338,7 +342,7 @@ const AdminProductEdit = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Produktname</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold" required />
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold text-left" required />
               </div>
               <div className="space-y-4">
                 <select value={category} onChange={(e) => { setCategory(e.target.value); setNewCategory(''); }} className="w-full bg-slate-50 p-5 rounded-2xl font-bold">
@@ -348,17 +352,17 @@ const AdminProductEdit = () => {
               </div>
             </div>
 
-            <textarea rows="4" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Beschreibung" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-medium"></textarea>
+            <textarea rows="4" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Beschreibung" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-medium text-left"></textarea>
 
             {/* EINHEIT & GEWICHT */}
             <div className="grid grid-cols-2 gap-4 p-6 bg-slate-50 rounded-3xl">
-                <div className="space-y-2">
+                <div className="space-y-2 text-left">
                     <label className="text-[10px] font-black uppercase text-slate-400">Einheit</label>
                     <select value={unit} onChange={(e) => setUnit(e.target.value)} className="w-full p-4 rounded-xl border-none font-bold">
                         {units.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 text-left">
                     <label className="text-[10px] font-black uppercase text-slate-400">Größe / Gewicht</label>
                     <input type="number" value={unitSize} onChange={(e) => setUnitSize(e.target.value)} className="w-full p-4 rounded-xl border-none font-bold" placeholder="500" />
                 </div>
@@ -367,24 +371,24 @@ const AdminProductEdit = () => {
             {/* LMIV FÜR LEBENSMITTEL */}
             {!isClothing && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 bg-cyan-50/30 rounded-[2.5rem] border border-cyan-100/50">
-                    <textarea rows="3" value={ingredients} onChange={(e) => setIngredients(e.target.value)} placeholder="Zutaten" className="w-full bg-white p-4 rounded-2xl text-sm"></textarea>
-                    <textarea rows="3" value={nutrition} onChange={(e) => setNutrition(e.target.value)} placeholder="Nährwerte" className="w-full bg-white p-4 rounded-2xl text-sm"></textarea>
+                    <textarea rows="3" value={ingredients} onChange={(e) => setIngredients(e.target.value)} placeholder="Zutaten" className="w-full bg-white p-4 rounded-2xl text-sm text-left"></textarea>
+                    <textarea rows="3" value={nutrition} onChange={(e) => setNutrition(e.target.value)} placeholder="Nährwerte" className="w-full bg-white p-4 rounded-2xl text-sm text-left"></textarea>
                 </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Preis (€)</label>
                 <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-cyan-50 p-6 rounded-3xl font-black text-4xl text-cyan-600" required />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Bestand</label>
                 <input type="number" value={isClothing ? variants.reduce((acc, v) => acc + Number(v.countInStock || 0), 0) : countInStock} onChange={(e) => setCountInStock(e.target.value)} className={`w-full p-6 rounded-3xl font-black text-2xl ${isClothing ? 'bg-slate-200' : 'bg-slate-50'}`} readOnly={isClothing} required />
               </div>
             </div>
 
             {/* MARKETING SEKTION */}
-            <div className="p-8 bg-amber-50 rounded-[2.5rem] border border-amber-100 space-y-6">
+            <div className="p-8 bg-amber-50 rounded-[2.5rem] border border-amber-100 space-y-6 text-left">
                 <div className="flex items-center justify-between">
                     <h4 className="text-amber-800 font-black text-xs uppercase">Marketing Aktionen</h4>
                     <div className="flex gap-4">
@@ -406,15 +410,81 @@ const AdminProductEdit = () => {
                 )}
             </div>
 
-            {/* PFAND OPTION */}
+            {/* NEU: STAFFELPREISE (FEUER STECKER) */}
+            <div className="p-8 bg-orange-50 rounded-[2.5rem] border border-orange-100 space-y-4 text-left">
+                <div className="flex justify-between items-center">
+                    <p className="text-orange-700 font-black text-xs uppercase italic">🔥 Mengenrabatte (Staffelpreise)</p>
+                    <button 
+                        type="button" 
+                        onClick={() => setTierPrices([...tierPrices, { qty: 2, price: 0 }])}
+                        className="bg-orange-500 text-white text-[10px] px-4 py-2 rounded-full font-black hover:bg-orange-600 transition-colors"
+                    >
+                        + STAFFEL HINZUFÜGEN
+                    </button>
+                </div>
+                
+                <div className="space-y-3">
+                    {tierPrices.map((tier, index) => (
+                        <div key={index} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-orange-100 shadow-sm">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Ab</span>
+                            <input 
+                                type="number" 
+                                value={tier.qty} 
+                                onChange={(e) => {
+                                    const newTiers = [...tierPrices];
+                                    newTiers[index].qty = Number(e.target.value);
+                                    setTierPrices(newTiers);
+                                }}
+                                className="w-16 bg-slate-50 p-2 rounded-lg font-black text-center outline-none" 
+                            />
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Stk. je</span>
+                            <div className="relative flex-1">
+                                <input 
+                                    type="number" 
+                                    step="0.01"
+                                    value={tier.price} 
+                                    onChange={(e) => {
+                                        const newTiers = [...tierPrices];
+                                        newTiers[index].price = Number(e.target.value);
+                                        setTierPrices(newTiers);
+                                    }}
+                                    className="w-full bg-orange-50 p-2 rounded-lg font-black text-orange-600 outline-none" 
+                                    placeholder="Preis"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400 font-bold text-xs">€</span>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => setTierPrices(tierPrices.filter((_, i) => i !== index))}
+                                className="text-rose-500 font-black px-2"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* PFAND OPTION (FIXED 0.25) */}
             {showDepositOption && (
-                <div className="p-8 bg-blue-50 rounded-[2.5rem] border border-blue-100 flex items-center justify-between">
-                    <p className="text-blue-900 font-black text-xs uppercase">♻️ Pfand hinzufügen</p>
+                <div className={`p-8 rounded-[2.5rem] border transition-all flex items-center justify-between text-left ${isDeposit ? 'bg-blue-600 border-blue-400 shadow-lg' : 'bg-blue-50 border-blue-100'}`}>
+                    <div className="flex items-center gap-4 text-left">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${isDeposit ? 'bg-blue-500' : 'bg-white'}`}>♻️</div>
+                        <div>
+                            <p className={`font-black text-xs uppercase ${isDeposit ? 'text-white' : 'text-blue-900'}`}>Pfand hinzufügen</p>
+                            <p className={`text-[10px] font-bold ${isDeposit ? 'text-blue-200' : 'text-blue-400'}`}>Standard-Satz: 0,25 €</p>
+                        </div>
+                    </div>
                     <div className="flex items-center gap-4">
-                        <input type="number" step="0.05" value={depositValue} onChange={(e) => setDepositValue(e.target.value)} className="w-24 bg-white p-3 rounded-xl font-black text-blue-600 text-center" placeholder="0.25" />
+                        {isDeposit && <span className="text-white font-black text-xl">0,25 €</span>}
                         <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" checked={isDeposit} onChange={(e) => setIsDeposit(e.target.checked)} className="sr-only peer" />
-                            <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-blue-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            <input 
+                                type="checkbox" 
+                                checked={isDeposit} 
+                                onChange={(e) => setIsDeposit(e.target.checked)} 
+                                className="sr-only peer" 
+                            />
+                            <div className={`w-14 h-7 rounded-full peer transition-all after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-7 ${isDeposit ? 'bg-blue-400' : 'bg-slate-200'}`}></div>
                         </label>
                     </div>
                 </div>
@@ -423,7 +493,7 @@ const AdminProductEdit = () => {
         </div>
 
         {/* SIDEBAR FÜR BILDER & SPEICHERN */}
-        <div className="lg:col-span-4 space-y-8">
+        <div className="lg:col-span-4 space-y-8 text-left">
           <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
             <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6">Produkt Bilder</h3>
             <div className="grid grid-cols-2 gap-3">
@@ -440,11 +510,11 @@ const AdminProductEdit = () => {
             </div>
           </div>
 
-          <div className={`p-10 rounded-[3.5rem] text-white shadow-2xl sticky top-10 ${isClothing ? 'bg-indigo-600' : 'bg-slate-900'}`}>
+          <div className={`p-10 rounded-[3.5rem] text-white shadow-2xl sticky top-10 text-left ${isClothing ? 'bg-indigo-600' : 'bg-slate-900'}`}>
             <h4 className="text-2xl font-black uppercase truncate mb-2">{name || 'Produkt'}</h4>
             <div className="mb-10">
                 <p className="text-4xl font-black">{Number(price).toFixed(2)}€</p>
-                {isDeposit && <p className="text-xs font-bold text-cyan-400">inkl. Pfand: +{depositValue}€</p>}
+                {isDeposit && <p className="text-xs font-bold text-cyan-400">inkl. Pfand: +0,25€</p>}
             </div>
             <button type="submit" disabled={loadingSave} className="w-full py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest bg-white text-slate-900 hover:bg-cyan-400 hover:text-white transition-all shadow-xl">
               {loadingSave ? 'Speichert...' : 'Produkt Speichern'}
