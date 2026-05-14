@@ -16,21 +16,16 @@ const AdminProductEdit = () => {
   const [description, setDescription] = useState('');
   const [brand, setBrand] = useState('AfghanShop');
   
-  // --- NEU: KLEIDUNGS LOGIK ---
-  const [isClothing, setIsClothing] = useState(false);
-  const [variants, setVariants] = useState([]); 
-
-  // --- LEBENSMITTEL DATEN (LMIV) ---
-  const [ingredients, setIngredients] = useState('');
-  const [nutrition, setNutrition] = useState('');
-
-  // --- PFAND OPTION (FIX 0.25) ---
+  // --- PFAND OPTION (Fixiert auf 0.25€) ---
   const [isDeposit, setIsDeposit] = useState(false);
-  const [depositValue, setDepositValue] = useState(0.25);
+  const [depositValue] = useState(0.25); // Fixer Wert
+
+  // --- STAFFELPREISE (TIERED PRICING) ---
+  const [tieredPrices, setTieredPrices] = useState([]);
 
   // --- EINHEIT & GEWICHT ---
-  const [unit, setUnit] = useState('g'); 
-  const [unitSize, setUnitSize] = useState(''); 
+  const [unit, setUnit] = useState('Stk');
+  const [unitSize, setUnitSize] = useState('');
 
   // --- PAKET / BUNDLE OPTION ---
   const [isBundle, setIsBundle] = useState(false);
@@ -43,11 +38,7 @@ const AdminProductEdit = () => {
   const [isPromotion, setIsPromotion] = useState(false);
   const [promotionLabel, setPromotionLabel] = useState('');
   const [oldPrice, setOldPrice] = useState(0);
-  const [isOnePlusOne, setIsOnePlusOne] = useState(false);
-  const [deliveryType, setDeliveryType] = useState('all'); 
-
-  // --- STAFFELPREISE (FEUER STECKER) ---
-  const [tierPrices, setTierPrices] = useState([]); 
+  const [deliveryType, setDeliveryType] = useState('all');
 
   // Trust Badges
   const [warranty, setWarranty] = useState('100% Original-Ware');
@@ -57,29 +48,23 @@ const AdminProductEdit = () => {
   const [uploading, setUploading] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
 
-  const categories = ["Lebensmittel", "Trockenfrüchte", "Getränke", "Süssigkeiten", "Frische Lebensmittel", "Kleidung"];
-  const units = ["g", "kg", "ml", "L", "Stk", "Packung", "Glas"];
+  const categories = ["Lebensmittel", "Trockenfrüchte", "Getränke", "Süssigkeiten", "Frische Lebensmittel"];
+  const units = ["Stk", "kg", "100g", "500g", "g", "L", "Dose", "Packung", "Sack", "Glas"];
 
-  // AUTO-LOGIK
+  // Logik für automatische Badges
   useEffect(() => {
     const currentCat = newCategory.trim() !== "" ? newCategory : category;
-    const foodKeywords = ["lebensmittel", "getränk", "frucht", "süss", "frisch", "essen", "food", "drink", "trockenfrüchte"];
+    const foodKeywords = ["lebensmittel", "getränk", "frucht", "süss", "frisch", "essen", "food", "drink"];
     const isFood = foodKeywords.some(keyword => currentCat.toLowerCase().includes(keyword));
 
-    if (currentCat === "Frische Lebensmittel" || (unit === 'kg' && Number(unitSize) >= 5)) {
-      setDeliveryType('local');
-    }
-
-    if (currentCat.toLowerCase() === "kleidung") {
-        setIsClothing(true);
-        setWarranty('Gesetzliche Gewährleistung');
-        setReturnPolicy('14 Tage Rückgaberecht');
-    } else if (isFood) {
-      setIsClothing(false); 
+    if (isFood) {
       setWarranty('100% Original-Ware');
-      setReturnPolicy('Kein Umtausch (Lebensmittel)');
+      setReturnPolicy('Kein Umtausch');
+    } else {
+      setWarranty('2 Jahre Garantie');
+      setReturnPolicy('30 Tage Rückgabe');
     }
-  }, [category, newCategory, unit, unitSize]);
+  }, [category, newCategory]);
 
   useEffect(() => {
     const fetchAllProducts = async () => {
@@ -101,38 +86,32 @@ const AdminProductEdit = () => {
           setCountInStock(data.countInStock || 0);
           setDescription(data.description || '');
           setBrand(data.brand || 'AfghanShop');
-          setIngredients(data.ingredients || '');
-          setNutrition(data.nutrition || '');
-          setUnit(data.unit || 'g');
-          setUnitSize(data.unitSize || data.weight || ''); 
+          setUnit(data.unit || 'Stk');
+          setUnitSize(data.unitSize || '');
           setIsBundle(data.isBundle || false);
           setBundleItems(Array.isArray(data.bundleItems) ? data.bundleItems : []); 
-          setWarranty(data.warranty || '');
-          setReturnPolicy(data.returnPolicy || '');
+          if(data.warranty) setWarranty(data.warranty);
+          if(data.returnPolicy) setReturnPolicy(data.returnPolicy);
           setShippingInfo(data.shippingInfo || 'Standard Versand');
           setIsPromotion(data.isPromotion || false);
           setPromotionLabel(data.promotionLabel || '');
           setOldPrice(data.oldPrice || 0);
-          setIsOnePlusOne(data.isOnePlusOne || false);
           setDeliveryType(data.deliveryType || 'all');
           setIsDeposit(data.isDeposit === true);
-          setDepositValue(0.25); // Immer Fix 0.25
-          setIsClothing(data.isClothing || false);
-          setVariants(data.variants || []);
-          setTierPrices(data.tierPrices || []);
+          setTieredPrices(data.tieredPrices || []);
         } catch (err) { console.error("Fehler beim Laden:", err); }
       };
       fetchProduct();
     }
   }, [id]);
 
-  // VARIANTEN FUNKTIONEN
-  const addVariant = () => setVariants([...variants, { size: '', color: '', countInStock: 0 }]);
-  const removeVariant = (index) => setVariants(variants.filter((_, i) => i !== index));
-  const handleVariantChange = (index, field, value) => {
-    const newVariants = [...variants];
-    newVariants[index][field] = field === 'countInStock' ? Number(value) : value;
-    setVariants(newVariants);
+  // Funktionen für Staffelpreise
+  const addTier = () => setTieredPrices([...tieredPrices, { quantity: 1, price: 0 }]);
+  const removeTier = (index) => setTieredPrices(tieredPrices.filter((_, i) => i !== index));
+  const updateTier = (index, field, value) => {
+    const newTiers = [...tieredPrices];
+    newTiers[index][field] = Number(value);
+    setTieredPrices(newTiers);
   };
 
   const calculateBundleTotal = () => {
@@ -163,7 +142,10 @@ const AdminProductEdit = () => {
     setSearchTerm('');
   };
 
-  const removeFromBundle = (prodId) => setBundleItems(bundleItems.filter(x => x.product !== prodId));
+  const removeFromBundle = (prodId) => {
+    setBundleItems(bundleItems.filter(x => x.product !== prodId));
+  };
+
   const updateBundleQty = (prodId, newQty) => {
     if (newQty < 1) return;
     setBundleItems(bundleItems.map(x => x.product === prodId ? { ...x, qty: Number(newQty) } : x));
@@ -183,56 +165,30 @@ const AdminProductEdit = () => {
         uploadedImages.push(data);
       }
       setImages(uploadedImages);
+      setUploading(false);
     } catch (error) {
       alert("Bild-Upload fehlgeschlagen");
-    } finally {
       setUploading(false);
     }
   };
 
-  const removeImage = (index) => setImages(images.filter((_, i) => i !== index));
+  const removeImage = (index) => {
+    setImages(images.filter((_, i) => i !== index));
+  };
 
   const submitHandler = async (e) => {
     if (e) e.preventDefault();
     setLoadingSave(true);
     const finalCategory = newCategory.trim() !== "" ? newCategory : category;
-    const totalStock = isClothing 
-        ? variants.reduce((acc, v) => acc + Number(v.countInStock || 0), 0) 
-        : Number(countInStock);
-
     try {
       const productData = {
-        name, 
-        price: Number(price), 
-        image: images[0] || '', 
-        images,
-        category: finalCategory, 
-        brand, 
-        countInStock: totalStock,
-        description, 
-        ingredients: isClothing ? '' : ingredients, 
-        nutrition: isClothing ? '' : nutrition, 
-        unit: isClothing ? 'Stk' : unit,               
-        weight: Number(unitSize), 
-        unitSize: Number(unitSize), 
-        isBundle, 
-        bundleItems,
-        warranty, 
-        returnPolicy, 
-        shippingInfo, 
-        isPromotion, 
-        promotionLabel,
-        oldPrice: Number(oldPrice), 
-        isOnePlusOne, 
-        deliveryType, 
-        isDeposit: Boolean(isDeposit),
-        depositValue: isDeposit ? 0.25 : 0,
-        isFresh: finalCategory === "Frische Lebensmittel" || deliveryType === 'local',
-        isClothing,
-        variants: isClothing ? variants : [],
-        tierPrices // Staffelpreise mitsenden
+        name, price: Number(price), image: images[0] || '', images,
+        category: finalCategory, brand, countInStock: Number(countInStock),
+        description, unit, unitSize, isBundle, bundleItems,
+        warranty, returnPolicy, shippingInfo, isPromotion, promotionLabel,
+        oldPrice: Number(oldPrice), deliveryType, isDeposit: Boolean(isDeposit),
+        depositValue: isDeposit ? 0.25 : 0, tieredPrices
       };
-
       if (id) { await api.put(`/products/${id}`, productData); } 
       else { await api.post('/products', productData); }
       navigate('/admin/products');
@@ -241,289 +197,266 @@ const AdminProductEdit = () => {
     } finally { setLoadingSave(false); }
   };
 
-  const showDepositOption = category === 'Getränke' || newCategory.toLowerCase().includes('getränk');
+  const showDepositOption = category === 'Getränke' || newCategory.toLowerCase().includes('getränk') || newCategory.toLowerCase().includes('drink');
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 font-sans bg-slate-50 min-h-screen">
-      {/* Header Bereich */}
       <div className="flex justify-between items-center mb-12">
         <div className="flex items-center gap-6">
-          <button type="button" onClick={() => navigate('/admin/products')} className="bg-white w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-cyan-500 hover:text-white transition-all shadow-sm border border-slate-200 group">
-            <span className="text-xl group-hover:-translate-x-1 transition-transform">←</span>
+          <button onClick={() => navigate('/admin/products')} className="bg-white w-14 h-14 rounded-2xl flex items-center justify-center hover:bg-cyan-500 hover:text-white transition-all shadow-sm border border-slate-200">
+            <span className="text-xl">←</span>
           </button>
-          <div className="text-left">
-            <p className="text-[10px] font-black uppercase text-cyan-500 tracking-[0.3em] mb-1 italic">Produkt Management</p>
+          <div>
+            <p className="text-[10px] font-black uppercase text-cyan-500 tracking-[0.3em] mb-1 italic">Produkt Studio</p>
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">
-              {id ? 'Produkt' : 'Neue'} <span className="text-cyan-500">Edition</span>
+              {id ? 'Inventar' : 'Neuaufnahme'} <span className="text-cyan-500">Edit</span>
             </h1>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                <span className={`text-[10px] font-black uppercase ${isClothing ? 'text-indigo-500' : 'text-slate-400'}`}>👗 Kleidung</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={isClothing} onChange={(e) => setIsClothing(e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-indigo-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                </label>
-            </div>
-            <div className="flex items-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                <span className={`text-[10px] font-black uppercase ${isBundle ? 'text-cyan-500' : 'text-slate-400'}`}>🎁 Bundle</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" checked={isBundle} onChange={(e) => setIsBundle(e.target.checked)} className="sr-only peer" />
-                    <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-cyan-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                </label>
-            </div>
+        <div className="flex items-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
+           <span className={`text-[10px] font-black uppercase ${isBundle ? 'text-cyan-500' : 'text-slate-400'}`}>Paket Modus</span>
+           <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked={isBundle} onChange={(e) => setIsBundle(e.target.checked)} className="sr-only peer" />
+              <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-cyan-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+           </label>
         </div>
       </div>
 
-      <form onSubmit={submitHandler} className="grid grid-cols-1 lg:grid-cols-12 gap-10 text-left">
+      <form onSubmit={submitHandler} className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-8 space-y-8">
           
-          {/* BUNDLE SEKTION */}
           {isBundle && (
-            <div className="bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl space-y-8 border-b-8 border-cyan-500 relative overflow-hidden text-left">
-                <div className="flex justify-between items-end relative z-10 text-left">
-                    <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg">🎁</div>
-                        <h3 className="text-white text-2xl font-black uppercase tracking-tighter text-left">Bundle Inhalt</h3>
-                    </div>
-                    <div className="bg-cyan-500/10 border border-cyan-500/30 px-6 py-3 rounded-2xl text-right">
-                        <p className="text-3xl font-black text-white">{calculateBundleTotal().toFixed(2)} €</p>
-                    </div>
+            <div className="bg-slate-900 p-10 rounded-[3.5rem] shadow-2xl space-y-8 border-b-8 border-cyan-500 animate-fadeIn relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                 <span className="text-9xl">🎁</span>
+              </div>
+              
+              <div className="flex justify-between items-end relative z-10">
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-cyan-500/20">🎁</div>
+                  <div>
+                    <h3 className="text-white text-2xl font-black uppercase tracking-tighter">Bundle Konfigurator</h3>
+                    <p className="text-cyan-400 text-[10px] font-bold uppercase italic tracking-widest">Stelle das Set aus Einzelartikeln zusammen</p>
+                  </div>
                 </div>
-                <input type="text" placeholder="Produkt suchen..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800 border-2 border-slate-700 p-6 rounded-3xl text-white outline-none" />
-                {searchResults.length > 0 && (
-                    <div className="bg-white rounded-3xl shadow-2xl overflow-hidden z-50">
-                        {searchResults.map(p => (
-                            <div key={p._id} onClick={() => addToBundle(p)} className="p-5 hover:bg-cyan-50 cursor-pointer flex justify-between items-center border-b border-slate-50 last:border-0">
-                                <span className="font-black text-slate-800 uppercase">{p.name}</span>
-                                <span className="bg-cyan-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">+</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {bundleItems.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between bg-slate-800/40 p-5 rounded-3xl border border-slate-700/50">
-                            <span className="text-white font-black text-xs uppercase truncate pr-4">{item.name}</span>
-                            <div className="flex items-center gap-4">
-                                <button type="button" onClick={() => updateBundleQty(item.product, item.qty - 1)} className="text-white">-</button>
-                                <span className="text-white">{item.qty}</span>
-                                <button type="button" onClick={() => updateBundleQty(item.product, item.qty + 1)} className="text-white">+</button>
-                                <button type="button" onClick={() => removeFromBundle(item.product)} className="text-rose-500">✕</button>
-                            </div>
-                        </div>
-                    ))}
+                <div className="bg-cyan-500/10 border border-cyan-500/30 px-6 py-3 rounded-2xl text-right backdrop-blur-md">
+                  <p className="text-[9px] text-cyan-300 font-black uppercase mb-1">Marktwert der Artikel</p>
+                  <p className="text-3xl font-black text-white">{calculateBundleTotal().toFixed(2)} €</p>
                 </div>
-            </div>
-          )}
+              </div>
 
-          {/* KLEIDUNGS VARIANTEN */}
-          {isClothing && (
-            <div className="bg-white p-10 rounded-[3.5rem] border-2 border-indigo-100 shadow-xl space-y-6">
-              <h3 className="text-indigo-900 text-xl font-black uppercase">Größen & Farben</h3>
-              <div className="space-y-4">
-                {variants.map((variant, index) => (
-                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-indigo-50/50 rounded-3xl border border-indigo-100">
-                    <input type="text" value={variant.size} placeholder="Größe" onChange={(e) => handleVariantChange(index, 'size', e.target.value)} className="p-3 rounded-xl border-none font-bold" />
-                    <input type="text" value={variant.color} placeholder="Farbe" onChange={(e) => handleVariantChange(index, 'color', e.target.value)} className="p-3 rounded-xl border-none font-bold" />
-                    <input type="number" value={variant.countInStock} onChange={(e) => handleVariantChange(index, 'countInStock', e.target.value)} className="p-3 rounded-xl border-none font-black" />
-                    <button type="button" onClick={() => removeVariant(index)} className="bg-white text-rose-500 py-3 rounded-xl font-black uppercase">Entfernen</button>
+              <div className="relative z-10">
+                <input 
+                  type="text" 
+                  placeholder="Produkt suchen & zum Paket hinzufügen..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-slate-800 border-2 border-slate-700 p-6 rounded-3xl text-white outline-none focus:border-cyan-400 transition-all placeholder:text-slate-500 font-bold text-lg"
+                />
+                {searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 w-full bg-white rounded-3xl shadow-2xl mt-4 overflow-hidden z-50 border border-slate-200">
+                    {searchResults.map(p => (
+                      <div key={p._id} onClick={() => addToBundle(p)} className="p-5 hover:bg-cyan-50 cursor-pointer flex justify-between items-center border-b border-slate-50 last:border-0 group">
+                        <span className="font-black text-slate-800 uppercase group-hover:text-cyan-600 transition-colors">{p.name}</span>
+                        <div className="flex items-center gap-3">
+                           <span className="text-slate-400 text-xs font-bold">{p.price.toFixed(2)}€</span>
+                           <span className="bg-cyan-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">+</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                {bundleItems.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between bg-slate-800/40 p-5 rounded-3xl border border-slate-700/50 hover:border-cyan-500/50 transition-all">
+                    <div className="flex flex-col">
+                      <span className="text-white font-black text-xs uppercase tracking-wider mb-1">{item.name}</span>
+                      <span className="text-cyan-500 text-[9px] font-bold uppercase">Inkludiert</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 bg-slate-900 rounded-2xl p-1 border border-slate-700">
+                        <button type="button" onClick={() => updateBundleQty(item.product, item.qty - 1)} className="w-10 h-10 flex items-center justify-center text-white font-black hover:text-cyan-400 text-xl">-</button>
+                        <input type="number" value={item.qty} readOnly className="w-8 bg-transparent text-center text-white font-black text-sm outline-none" />
+                        <button type="button" onClick={() => updateBundleQty(item.product, item.qty + 1)} className="w-10 h-10 flex items-center justify-center text-white font-black hover:text-cyan-400 text-xl">+</button>
+                      </div>
+                      <button type="button" onClick={() => removeFromBundle(item.product)} className="bg-rose-500/10 text-rose-500 w-10 h-10 rounded-2xl hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center">✕</button>
+                    </div>
                   </div>
                 ))}
               </div>
-              <button type="button" onClick={addVariant} className="w-full border-2 border-indigo-200 border-dashed p-5 rounded-[2rem] text-indigo-500 font-black">+ Variante</button>
             </div>
           )}
 
-          {/* HAUPT DATEN BLOCK */}
-          <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8">
+          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Produktname</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-bold text-left" required />
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-1 tracking-widest">Produktbezeichnung</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-50 border-2 border-transparent p-5 rounded-2xl focus:border-cyan-500 focus:bg-white transition-all outline-none font-bold text-slate-800" required />
               </div>
-              <div className="space-y-4">
-                <select value={category} onChange={(e) => { setCategory(e.target.value); setNewCategory(''); }} className="w-full bg-slate-50 p-5 rounded-2xl font-bold">
+              <div className="space-y-4 p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Kategorie</label>
+                  <select value={category} onChange={(e) => { setCategory(e.target.value); setNewCategory(''); }} className="w-full bg-white border-2 border-transparent p-4 rounded-2xl focus:border-cyan-500 transition-all outline-none font-bold text-slate-800">
+                    <option value="">Wählen...</option>
                     {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-                <input type="text" placeholder="Eigene Kategorie..." value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full bg-white border-2 border-cyan-100 p-4 rounded-2xl font-black" />
+                  </select>
+                </div>
+                <input type="text" placeholder="NEUE KATEGORIE..." value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full bg-white border-2 border-cyan-100 p-4 rounded-2xl focus:border-cyan-500 outline-none font-black text-[10px] uppercase text-cyan-600 tracking-widest" />
               </div>
             </div>
 
-            <textarea rows="4" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Beschreibung" className="w-full bg-slate-50 p-5 rounded-2xl outline-none font-medium text-left"></textarea>
-
-            {/* EINHEIT & GEWICHT */}
-            <div className="grid grid-cols-2 gap-4 p-6 bg-slate-50 rounded-3xl">
-                <div className="space-y-2 text-left">
-                    <label className="text-[10px] font-black uppercase text-slate-400">Einheit</label>
-                    <select value={unit} onChange={(e) => setUnit(e.target.value)} className="w-full p-4 rounded-xl border-none font-bold">
-                        {units.map(u => <option key={u} value={u}>{u}</option>)}
-                    </select>
+            {/* PREISE & STAFFELPREISE BEREICH */}
+            <div className="bg-cyan-50/30 p-8 rounded-[2.5rem] border border-cyan-100 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Verkaufspreis (€)</label>
+                  <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className={`w-full border-2 border-transparent p-6 rounded-3xl focus:border-cyan-500 transition-all outline-none font-black text-4xl ${isPromotion ? 'bg-rose-50 text-rose-600' : 'bg-white text-cyan-600 shadow-sm'}`} required />
                 </div>
-                <div className="space-y-2 text-left">
-                    <label className="text-[10px] font-black uppercase text-slate-400">Größe / Gewicht</label>
-                    <input type="number" value={unitSize} onChange={(e) => setUnitSize(e.target.value)} className="w-full p-4 rounded-xl border-none font-bold" placeholder="500" />
+                
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center px-2">
+                    <label className="text-[10px] font-black uppercase text-cyan-600 italic tracking-widest">🔥 Staffelpreise</label>
+                    <button type="button" onClick={addTier} className="bg-cyan-500 text-white text-[10px] font-black px-4 py-2 rounded-xl hover:bg-cyan-600 transition-all">+ NEUE STUFE</button>
+                  </div>
+                  <div className="space-y-3">
+                    {tieredPrices.map((tier, index) => (
+                      <div key={index} className="flex gap-2 items-center animate-fadeIn">
+                        <input type="number" placeholder="Ab Stk" value={tier.quantity} onChange={(e) => updateTier(index, 'quantity', e.target.value)} className="w-1/3 p-3 rounded-xl border border-cyan-100 font-bold text-sm outline-none focus:border-cyan-500" />
+                        <input type="number" step="0.01" placeholder="Preis je" value={tier.price} onChange={(e) => updateTier(index, 'price', e.target.value)} className="w-1/3 p-3 rounded-xl border border-cyan-100 font-bold text-sm outline-none focus:border-cyan-500 text-cyan-600" />
+                        <button type="button" onClick={() => removeTier(index)} className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all text-xs">✕</button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              </div>
             </div>
 
-            {/* LMIV FÜR LEBENSMITTEL */}
-            {!isClothing && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 bg-cyan-50/30 rounded-[2.5rem] border border-cyan-100/50">
-                    <textarea rows="3" value={ingredients} onChange={(e) => setIngredients(e.target.value)} placeholder="Zutaten" className="w-full bg-white p-4 rounded-2xl text-sm text-left"></textarea>
-                    <textarea rows="3" value={nutrition} onChange={(e) => setNutrition(e.target.value)} placeholder="Nährwerte" className="w-full bg-white p-4 rounded-2xl text-sm text-left"></textarea>
+            <div className="bg-rose-50 p-6 rounded-[2.5rem] border border-rose-100 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-[11px] font-black text-rose-600 uppercase tracking-widest italic">📢 Marketing & Preis-Aktion</h3>
                 </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" checked={isPromotion} onChange={(e) => setIsPromotion(e.target.checked)} className="sr-only peer" />
+                  <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-rose-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+              </div>
+              {isPromotion && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
+                  <input type="text" value={promotionLabel} onChange={(e) => setPromotionLabel(e.target.value)} className="w-full bg-white border-2 border-rose-200 p-4 rounded-2xl font-black text-rose-600 outline-none" placeholder="z.B. ANGEBOT" />
+                  <input type="number" step="0.01" value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} className="w-full bg-white border-2 border-rose-200 p-4 rounded-2xl font-black text-slate-400 line-through outline-none" placeholder="Alter Preis" />
+                </div>
+              )}
+            </div>
+
+            {showDepositOption && (
+              <div className="bg-orange-50 p-6 rounded-[2.5rem] border border-orange-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest italic">🥤 Pfand-Einstellung</h3>
+                    <p className="text-[8px] font-bold text-orange-400 uppercase mt-1">Fixer Pfandwert: 0,25 € pro Einheit</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={isDeposit} onChange={(e) => setIsDeposit(e.target.checked)} className="sr-only peer" />
+                    <div className="w-11 h-6 bg-slate-200 rounded-full peer-checked:bg-orange-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  </label>
+                </div>
+              </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2 text-left">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Preis (€)</label>
-                <input type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full bg-cyan-50 p-6 rounded-3xl font-black text-4xl text-cyan-600" required />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Lagerbestand</label>
+                <input type="number" value={countInStock} onChange={(e) => setCountInStock(e.target.value)} className="w-full bg-slate-50 border-2 border-transparent p-6 rounded-3xl outline-none font-black text-slate-900 text-2xl" required />
               </div>
-              <div className="space-y-2 text-left">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Bestand</label>
-                <input type="number" value={isClothing ? variants.reduce((acc, v) => acc + Number(v.countInStock || 0), 0) : countInStock} onChange={(e) => setCountInStock(e.target.value)} className={`w-full p-6 rounded-3xl font-black text-2xl ${isClothing ? 'bg-slate-200' : 'bg-slate-50'}`} readOnly={isClothing} required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Einheit</label>
+                  <select value={unit} onChange={(e) => setUnit(e.target.value)} className="w-full bg-slate-50 border-2 border-transparent p-4 rounded-2xl outline-none font-black text-slate-800">
+                    {units.map(u => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-cyan-600 ml-1 italic tracking-widest">Inhalt (Inhalt)</label>
+                  <input type="text" value={unitSize} onChange={(e) => setUnitSize(e.target.value)} className="w-full bg-white border-2 border-cyan-100 p-4 rounded-2xl outline-none font-bold text-slate-800" placeholder="z.B. 500g" />
+                </div>
               </div>
             </div>
-
-            {/* MARKETING SEKTION */}
-            <div className="p-8 bg-amber-50 rounded-[2.5rem] border border-amber-100 space-y-6 text-left">
-                <div className="flex items-center justify-between">
-                    <h4 className="text-amber-800 font-black text-xs uppercase">Marketing Aktionen</h4>
-                    <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={isPromotion} onChange={(e) => setIsPromotion(e.target.checked)} />
-                            <span className="text-[10px] font-black uppercase italic">Promotion</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={isOnePlusOne} onChange={(e) => setIsOnePlusOne(e.target.checked)} />
-                            <span className="text-[10px] font-black uppercase italic">1+1 Gratis</span>
-                        </label>
-                    </div>
-                </div>
-                {isPromotion && (
-                    <div className="grid grid-cols-2 gap-4">
-                        <input type="number" step="0.01" value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} placeholder="Alter Preis" className="bg-white p-3 rounded-xl font-bold line-through" />
-                        <input type="text" value={promotionLabel} onChange={(e) => setPromotionLabel(e.target.value)} placeholder="SALE Label" className="bg-white p-3 rounded-xl font-bold text-amber-600" />
-                    </div>
-                )}
-            </div>
-
-            {/* NEU: STAFFELPREISE (FEUER STECKER) */}
-            <div className="p-8 bg-orange-50 rounded-[2.5rem] border border-orange-100 space-y-4 text-left">
-                <div className="flex justify-between items-center">
-                    <p className="text-orange-700 font-black text-xs uppercase italic">🔥 Mengenrabatte (Staffelpreise)</p>
-                    <button 
-                        type="button" 
-                        onClick={() => setTierPrices([...tierPrices, { qty: 2, price: 0 }])}
-                        className="bg-orange-500 text-white text-[10px] px-4 py-2 rounded-full font-black hover:bg-orange-600 transition-colors"
-                    >
-                        + STAFFEL HINZUFÜGEN
-                    </button>
-                </div>
-                
-                <div className="space-y-3">
-                    {tierPrices.map((tier, index) => (
-                        <div key={index} className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-orange-100 shadow-sm">
-                            <span className="text-[10px] font-black text-slate-400 uppercase">Ab</span>
-                            <input 
-                                type="number" 
-                                value={tier.qty} 
-                                onChange={(e) => {
-                                    const newTiers = [...tierPrices];
-                                    newTiers[index].qty = Number(e.target.value);
-                                    setTierPrices(newTiers);
-                                }}
-                                className="w-16 bg-slate-50 p-2 rounded-lg font-black text-center outline-none" 
-                            />
-                            <span className="text-[10px] font-black text-slate-400 uppercase">Stk. je</span>
-                            <div className="relative flex-1">
-                                <input 
-                                    type="number" 
-                                    step="0.01"
-                                    value={tier.price} 
-                                    onChange={(e) => {
-                                        const newTiers = [...tierPrices];
-                                        newTiers[index].price = Number(e.target.value);
-                                        setTierPrices(newTiers);
-                                    }}
-                                    className="w-full bg-orange-50 p-2 rounded-lg font-black text-orange-600 outline-none" 
-                                    placeholder="Preis"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-orange-400 font-bold text-xs">€</span>
-                            </div>
-                            <button 
-                                type="button" 
-                                onClick={() => setTierPrices(tierPrices.filter((_, i) => i !== index))}
-                                className="text-rose-500 font-black px-2"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* PFAND OPTION (FIXED 0.25) */}
-            {showDepositOption && (
-                <div className={`p-8 rounded-[2.5rem] border transition-all flex items-center justify-between text-left ${isDeposit ? 'bg-blue-600 border-blue-400 shadow-lg' : 'bg-blue-50 border-blue-100'}`}>
-                    <div className="flex items-center gap-4 text-left">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${isDeposit ? 'bg-blue-500' : 'bg-white'}`}>♻️</div>
-                        <div>
-                            <p className={`font-black text-xs uppercase ${isDeposit ? 'text-white' : 'text-blue-900'}`}>Pfand hinzufügen</p>
-                            <p className={`text-[10px] font-bold ${isDeposit ? 'text-blue-200' : 'text-blue-400'}`}>Standard-Satz: 0,25 €</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {isDeposit && <span className="text-white font-black text-xl">0,25 €</span>}
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                checked={isDeposit} 
-                                onChange={(e) => setIsDeposit(e.target.checked)} 
-                                className="sr-only peer" 
-                            />
-                            <div className={`w-14 h-7 rounded-full peer transition-all after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-7 ${isDeposit ? 'bg-blue-400' : 'bg-slate-200'}`}></div>
-                        </label>
-                    </div>
-                </div>
-            )}
           </div>
         </div>
 
-        {/* SIDEBAR FÜR BILDER & SPEICHERN */}
-        <div className="lg:col-span-4 space-y-8 text-left">
+        <div className="lg:col-span-4 space-y-8">
           <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
-            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-6">Produkt Bilder</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <h3 className="text-[10px] font-black uppercase text-slate-400 mb-4 ml-2 italic">Medien</h3>
+            <div className="grid grid-cols-2 gap-3 mb-4">
               {images.map((img, index) => (
                 <div key={index} className="relative aspect-square bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 group">
-                  <img src={img.startsWith('http') ? img : `https://afghanshop-backend.onrender.com${img}`} className="w-full h-full object-contain" alt="Vorschau" />
-                  <button type="button" onClick={() => removeImage(index)} className="absolute inset-0 bg-rose-500/80 text-white font-black opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">LÖSCHEN</button>
+                  <img src={img.startsWith('http') ? img : `http://localhost:5001${img}`} alt="Produkt" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => removeImage(index)} className="absolute top-2 right-2 bg-rose-500 text-white w-7 h-7 rounded-xl text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg">✕</button>
                 </div>
               ))}
-              <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-cyan-400">
-                <span className="text-2xl">📸</span>
+              <label className="aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-cyan-400 hover:bg-cyan-50 transition-all group">
+                <span className="text-3xl group-hover:scale-110 transition-transform">📸</span>
                 <input type="file" multiple onChange={uploadFileHandler} className="hidden" />
               </label>
             </div>
           </div>
 
-          <div className={`p-10 rounded-[3.5rem] text-white shadow-2xl sticky top-10 text-left ${isClothing ? 'bg-indigo-600' : 'bg-slate-900'}`}>
-            <h4 className="text-2xl font-black uppercase truncate mb-2">{name || 'Produkt'}</h4>
-            <div className="mb-10">
-                <p className="text-4xl font-black">{Number(price).toFixed(2)}€</p>
-                {isDeposit && <p className="text-xs font-bold text-cyan-400">inkl. Pfand: +0,25€</p>}
+          <div className={`p-10 rounded-[3.5rem] text-white shadow-2xl border-b-8 sticky top-10 transition-all duration-500 ${isPromotion ? 'bg-rose-600 border-rose-900' : 'bg-slate-900 border-cyan-500'}`}>
+            <p className="text-[9px] font-black text-cyan-400 uppercase mb-5 tracking-[0.3em] italic">Vorschau Live</p>
+            {isBundle && <span className="bg-cyan-500 text-white px-4 py-1.5 rounded-xl text-[10px] font-black uppercase mb-3 inline-block shadow-lg shadow-cyan-500/30">🎁 BUNDLE AKTIV</span>}
+            <h4 className="text-2xl font-black uppercase tracking-tighter mb-2 truncate">{name || 'Produktname'}</h4>
+            
+            <div className="flex flex-col gap-1 mb-8">
+              <div className="flex items-baseline gap-3">
+                <p className="text-4xl font-black text-white">{Number(price).toFixed(2)}€</p>
+                {isPromotion && oldPrice > 0 && <p className="text-lg font-bold text-white/40 line-through">{Number(oldPrice).toFixed(2)}€</p>}
+              </div>
+              <p className="text-[10px] text-cyan-400 font-black uppercase tracking-widest">{isBundle ? `${bundleItems.length} ARTIKEL IM SET` : `EINHEIT: ${unitSize || unit}`}</p>
+              
+              {/* STAFFELPREISE IN DER VORSCHAU */}
+              {tieredPrices.length > 0 && (
+                <div className="mt-4 space-y-1 border-t border-white/10 pt-4">
+                  <p className="text-[8px] font-black text-cyan-300 uppercase tracking-widest mb-2 italic">Mengenrabatte:</p>
+                  {tieredPrices.map((t, i) => (
+                    <div key={i} className="flex justify-between text-[10px] font-bold">
+                      <span>Ab {t.quantity} Stk.</span>
+                      <span className="text-cyan-400">{Number(t.price).toFixed(2)}€ / Stk</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <button type="submit" disabled={loadingSave} className="w-full py-5 rounded-2xl font-black uppercase text-[11px] tracking-widest bg-white text-slate-900 hover:bg-cyan-400 hover:text-white transition-all shadow-xl">
-              {loadingSave ? 'Speichert...' : 'Produkt Speichern'}
+
+            <button type="button" onClick={submitHandler} disabled={loadingSave || uploading} className="w-full bg-white text-slate-900 py-6 rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-cyan-500 hover:text-white transition-all active:scale-95 disabled:opacity-50 shadow-xl">
+              {loadingSave ? 'WIRD GESPEICHERT...' : 'PRODUKT SPEICHERN'}
             </button>
+            
+            <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-3 gap-2">
+              <div className="flex flex-col items-center text-center">
+                <span className="text-xl mb-1">🚚</span>
+                <p className="text-[7px] font-black uppercase tracking-widest text-white/40">Versand</p>
+                <p className="text-[8px] font-bold leading-tight">{shippingInfo}</p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <span className="text-xl mb-1">✨</span>
+                <p className="text-[7px] font-black uppercase tracking-widest text-white/40">Qualität</p>
+                <p className="text-[8px] font-bold leading-tight">{warranty}</p>
+              </div>
+              <div className="flex flex-col items-center text-center">
+                <span className="text-xl mb-1">🚫</span>
+                <p className="text-[7px] font-black uppercase tracking-widest text-white/40">Rückgabe</p>
+                <p className="text-[8px] font-bold leading-tight">{returnPolicy}</p>
+              </div>
+            </div>
           </div>
         </div>
       </form>
     </div>
   );
-}
+};
 
 export default AdminProductEdit;
